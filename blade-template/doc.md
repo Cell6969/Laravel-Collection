@@ -519,5 +519,33 @@ Blade template memiliki directive @csrf yang bisa digunakan untuk mempermudah ki
 
 Contoh implementasinya
 ```php
-
+<html lang="en">
+<body>
+    <form action="">
+        @csrf
+        <input type="text" name="name" />
+        <input type="submit" name="Send" />
+    </form>
+</body>
+</html>
 ```
+
+## Error
+Laravel memiliki fitur validation. Ketika terjadi validation error, error bisa ditangkap dengan directive @error(field) dan menangkap messagenya dengan variable $message di dalam directive @error nya.
+
+Contoh implementasinya:
+```php
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    @error("name")
+        <p>{{$message}}</p>
+    @enderror
+
+    @error("password")
+        <p>{{$message}}</p>
+    @enderror
+</body>
+</html>
+```
+
