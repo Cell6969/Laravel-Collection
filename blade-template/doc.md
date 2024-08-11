@@ -228,8 +228,9 @@ Dalam blade template juga bisa dilakukan switch statement case menggunakan @swit
 
 </html>
 ```
+## Loop
 
-## For Loop
+### For Loop
 Contoh implementasi:
 ```php
 <!DOCTYPE html>
@@ -261,7 +262,7 @@ untuk melakukan directive loop terhadap data yang ingin ditampilkan. Contoh:
 </html>
 ```
 
-## ForElse Loop
+### ForElse Loop
 Untuk membuat kondisional jika data yang diberikan tidak ada. Contoh:
 ```php
 <!DOCTYPE html>
@@ -279,7 +280,7 @@ Untuk membuat kondisional jika data yang diberikan tidak ada. Contoh:
 </html>
 ```
 
-## While Loop
+### While Loop
 Laravel mendukung perulangan menggunakan while, sebagai contoh:
 ```php
 <html lang="en">
@@ -294,7 +295,7 @@ Laravel mendukung perulangan menggunakan while, sebagai contoh:
 </html>
 ```
 
-## Loop Variable
+### Loop Variable
 Ketika melakukan looping forEach, kita ingin mengakses beberapa variable seperti iterasi dll.
 ![alt text](image.png)
 
@@ -337,5 +338,76 @@ Untuk implementasi css class pada element berdasarkan output dari backend. Conto
     </ul>
 </body>
 
+</html>
+```
+## Include
+
+### Include basic
+Saat kita ingin membuat halaman web, ada beberapa bagian yang sama. Oleh karenanya kita dapat membuat template layout kemudian menggunakan directive include untuk mengambil template tersebut.
+Sebagai Contoh:
+
+header.blade.php
+```php
+@isset($title)
+    <h1>{{$title}}</h1>
+@else
+    Alphonso
+@endisset
+```
+
+include.blade.php
+```php
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    @include('header')
+    <p>Welcome...</p>
+</body>
+</html>
+```
+### Include Parameter
+Secara default, semua data yang dikirim ke template utama akan dikirim ke template yang kita @include. Namun jika ingin menambah parameter tambahanm bisa menggunakan directive @include(template, data).
+
+Contoh:
+```php
+@isset($title)
+    <h1>{{$title}}</h1>
+@else
+    Alphonso
+@endisset
+
+@isset($description)
+    <p>{{$description}}</p>
+@endisset
+```
+
+Kemudian pada includenya:
+```php
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    @include('header', ['description' => 'ini web'])
+    <p>Welcome...</p>
+</body>
+</html>
+```
+
+### Include Condition
+![alt text](image-1.png)
+
+Contoh implementasinya:
+
+header-admin.blade.php
+```php
+<h1>Selamat Datang Owner</h1>
+<p>Untuk melihat laporan penjualan, silahkan buka menu laporan</p>
+```
+incluede-condition.blade.php
+```php
+<html lang="en">
+<body>
+    @includeWhen($user['admin']== 'benar', 'header-admin')
+    <p>Selamat datang {{$user['name']}}</p>
+</body>
 </html>
 ```
