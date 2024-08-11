@@ -278,3 +278,35 @@ Untuk membuat kondisional jika data yang diberikan tidak ada. Contoh:
 </body>
 </html>
 ```
+
+## While Loop
+Laravel mendukung perulangan menggunakan while, sebagai contoh:
+```php
+<html lang="en">
+<body>
+    @while ($i < 10)
+        Current Value is {{$i}}
+        @php
+            $i++;
+        @endphp
+    @endwhile
+</body>
+</html>
+```
+
+## Loop Variable
+Ketika melakukan looping forEach, kita ingin mengakses beberapa variable seperti iterasi dll.
+![alt text](image.png)
+
+Contoh implementasi:
+```php
+<html lang="en">
+<body>
+    <ul>
+        @foreach ($hobbies as $hobby)
+            <li>{{$loop->iteration}}. {{$hobby}}</li>
+        @endforeach
+    </ul>
+</body>
+</html>
+```
