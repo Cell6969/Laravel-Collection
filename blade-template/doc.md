@@ -411,3 +411,42 @@ incluede-condition.blade.php
 </body>
 </html>
 ```
+
+## Each dan Once
+![alt text](image-2.png)
+
+Contoh implementasinya:
+
+user.blade.php
+```php
+@production
+    <style>
+        .red {
+            color: red;
+        }
+    </style>
+@endonce
+
+<h1>{{$user['name']}}</h1>
+
+<ul>
+    @foreach ($user['hobbies'] as $hobby)
+        <li class="red">{{$hobby}}</li>
+    @endforeach
+</ul>
+```
+
+each.blade.php
+```php
+<!DOCTYPE html>
+<html lang="en">
+<body>
+    @each('user', $users, "user")
+</body>
+</html>
+```
+
+Pada unit test:
+```php
+
+```
