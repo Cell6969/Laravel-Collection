@@ -1,0 +1,14 @@
+<html>
+    <head>
+        <title>Ini Form</title>
+    </head>
+    <body>
+        <form action="/form" method="post">
+            <label for="Nama">
+                <input type="text" name="name">
+            </label>
+            <input type="submit" value="Say Hello">
+            <input type="hidden" name="_token" value="{{csrf_token()}}">
+        </form>
+    </body>
+</html>
