@@ -448,5 +448,76 @@ each.blade.php
 
 Pada unit test:
 ```php
+public function testEach()
+    {
+        $this->view('each', ['users' => [
+            [
+                'name' => 'alphonso',
+                'hobbies' => ['Coding', 'Gaming']
+            ],
+            [
+                'name' => 'jonathan',
+                'hobbies' => ['Coding', 'Gaming']
+            ]
+        ]])
+            ->assertSeeInOrder([
+                '.red',
+                'alphonso',
+                'Coding',
+                'Gaming',
+                'jonathan',
+                'Coding',
+                'Gaming'
+            ]);
+    }
+```
+## Form
+Blade tamplate memiliki beberapa directive untuk proses pembuatan form. Beberapa directive yang bisa digunakan:
+![alt text](image-3.png)
+
+Contoh implementasinya:
+```php
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+    <form action="">
+        <input type="checkbox" @checked($user['premium']) value="Premium"> <br />
+        <input type="text" value="{{$user['name']}}" @readonly(!$user['admin'])> <br />
+    </form>
+</body>
+
+</html>
+```
+
+untuk unit tesnya:
+```php
+public function testForm()
+    {
+        $this->view('form', ['user' => [
+            'premium' => true,
+            'name' => 'alphonso',
+            'admin' => true
+        ]])
+            ->assertSee('checked')
+            ->assertSee('alphonso')
+            ->assertDontSee('readonly');
+
+        $this->view('form', ['user' => [
+            'premium' => false,
+            'name' => 'alphonso',
+            'admin' => false
+        ]])
+            ->assertDontSee('checked')
+            ->assertSee('alphonso')
+            ->assertSee('readonly');
+    }
+```
+
+## CSRF
+Blade template memiliki directive @csrf yang bisa digunakan untuk mempermudah kita ketika ingin menambahkan token CSRF di form kita.
+
+Contoh implementasinya
+```php
 
 ```
