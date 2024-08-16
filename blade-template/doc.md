@@ -690,3 +690,57 @@ Lalu pada blade
 
 </html>
 ```
+
+## Inline
+Blade juga memiliki facade yang bisa digunakan untuk menggunakan blade template. Hal ini bertujuan untuk mempermudah ketika ingin mengakses Blade Template. Salah satu facade-nya adalah inline. Inline Template adalah kemampuan dimana kita bisa me-render template tanpa harus membuat file template. (skip)
+
+## Extending Blade
+Blade facade juga bisa digunakan untuk menambahkan custom directive. Best practicenya adalah directive di-registrasikan di service provider.
+
+Contoh implementasinya:
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Services\SayHello;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $this->app->singleton(SayHello::class, function () {
+            return new SayHello();
+        });
+    }
+
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        Blade::directive("hello", function ($expression) {
+            return "<?php echo 'Hello '. $expression; ?>";
+        });
+    }
+}
+```
+(abaikan fungsi di register). Kemudian buat template:
+```php
+<html>
+    <body>
+        @hello($name)
+    </body>
+</html>
+```
+Dengan demikian kita dapat menggunakan custom directive
+
