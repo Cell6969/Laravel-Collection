@@ -626,3 +626,67 @@ child.blade.php
 Secara garis besar child akan menurunkan/extend dari parent kemudian akan mengisi parameter - parameter tersebut.
 
 ### Show Directive
+
+## Service Injection
+Blade template juga mendukung directive @inject(variable, service) untuk mengambil object dari Service Container. Secara otomatis data object akan di injct ke variable yang disebutkan di directive @inject. Sebagai contoh, buat Class Service SayHello
+```php
+<?php
+
+namespace App\Services;
+
+class SayHello
+{
+    function sayHello(string $name): string
+    {
+        return "Hello $name";
+    }
+}
+
+```
+
+Registrasikan ke provider (dalam hal ini registrasi di AppServiceProvider)
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Services\SayHello;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $this->app->singleton(SayHello::class, function(){
+            return new SayHello();
+        });
+    }
+
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        //
+    }
+}
+```
+Lalu pada blade
+```php
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+    @inject('service', 'App\Services\SayHello')
+    <h1>{{ $service->sayHello($name)}}</h1>
+</body>
+
+</html>
+```
