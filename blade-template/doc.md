@@ -744,3 +744,57 @@ class AppServiceProvider extends ServiceProvider
 ```
 Dengan demikian kita dapat menggunakan custom directive
 
+## Custom Echo Handler
+Singkatnya , customer echo handler akan mengubah output dari object. Contoh implementasinya, buat model Person
+```php
+<?php
+
+namespace App\Models;
+
+class Person {
+    public string $name;
+    public string $address;
+}
+
+```
+Kemudian pada appServiceProvider:
+```php
+public function boot()
+    {
+        Blade::directive("hello", function ($expression) {
+            return "<?php echo 'Hello '. $expression; ?>";
+        });
+
+        Blade::stringable(Person::class, function(Person $person){
+            return "$person->name : $person->address";
+        });
+    }
+```
+
+Kemudian buat blade template
+```php
+<html>
+    <body>
+        {{$person}}
+    </body>
+</html>
+```
+
+Pada unit test:
+```php
+public function testEcho()
+    {
+        $person = new Person();
+
+        $person->name = "jonathan";
+
+        $person->address = "indonesia";
+
+        $this->view('echo', [
+            'person' => $person
+        ])->assertSeeText("jonathan : indonesia");
+    }
+```
+
+apa yang terjadi ? yang terjadi adalah ketika template itu memanggil object yaitu Person, return nya adalah sesuai dengan service yanng sudah di daftarkan pada AppServiceProvider.
+
