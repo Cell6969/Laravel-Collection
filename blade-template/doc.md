@@ -548,4 +548,81 @@ Contoh implementasinya:
 </body>
 </html>
 ```
+Contoh unit testnya:
+```php
+public function testError()
+    {
+        $errors = [
+            "name" => "Name is required",
+            "password" => "Password is required"
+        ];
 
+        $this->withViewErrors($errors)
+            ->view('error', [])
+            ->assertSeeText('Name is required')
+            ->assertSeeText('Password is required');
+    }
+```
+## Stack
+Blade memiliki kemampuan mirip struktur data stack dimana kita bisa mengirim data ke stack tersebut menggunakan directive @push(nama) atau @pushif(kondisi,nama). Untuk menampilkan semua data yang terdapat pada stack, bisa menggunakan directive @stack(nama). Secara default @push() akan mengirim data ke posisi belakang, untuk mengirim data ke awa menggunakan @prepend(name).
+
+contoh implementasi:
+```php
+<html>
+
+<body>
+    @push('script')
+        <script src="first.js"/>
+    @endpush
+
+    @push('script')
+        <script src="second.js"/>
+    @endpush
+
+    @prepend('script')
+        <script src="third.js"></script>
+    @endprepend
+
+    @stack('script')
+</body>
+
+</html>
+```
+
+## Template Inheritance
+Mirip konsep nya dengan @include, tetapi klo @include, parent akan melakukan @include ke template child, sedangkan Template Inheritance, child akan melakukan extends ke parent template, dah child akan menentukan isi dari parent nya.
+
+parent.blade.php
+```php
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Nama Aplikasi - @yield('title')</title>
+</head>
+
+<body>
+    @yield('header')
+    @yield('content')
+</body>
+
+</html>
+```
+
+child.blade.php
+```php
+@extends('parent')
+
+@section('title', 'Halaman Utama')
+
+@section('header')
+<h1>Deskripsi Header</h1>
+@endsection
+
+@section('content')
+<p>Ini adalah content</p>
+@endsection
+```
+Secara garis besar child akan menurunkan/extend dari parent kemudian akan mengisi parameter - parameter tersebut.
+
+### Show Directive
