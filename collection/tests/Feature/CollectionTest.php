@@ -345,4 +345,15 @@ class CollectionTest extends TestCase
         $this->assertEquals([7, 8, 9], $result->all()[2]->values()->all());
         $this->assertEquals([10], $result->all()[3]->values()->all());
     }
+
+    public function testOrdering()
+    {
+        $collection = collect([1,3,6,7,2,4,5,9,8]);
+
+        $result = $collection->sort();
+        $this->assertEqualsCanonicalizing([1,2,3,4,5,6,7,8,9], $result->values()->all());
+
+        $result = $collection->sortDesc();
+        $this->assertEqualsCanonicalizing([9,8,7,6,5,4,3,2,1], $result->values()->all());
+    }
 }
