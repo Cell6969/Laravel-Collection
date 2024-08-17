@@ -187,3 +187,44 @@ public function testCombine()
         ], $collection3->all());
     }
 ```
+## Flattening
+Flattening adalah operasi transformasi untuk menjadikan nested collection menjadi flat.
+![alt text](image-3.png)
+Collapse Method
+```php
+public function testCollapse()
+    {
+        $collection = collect([
+            [1,2,3],
+            [4,5,6],
+            [7,8,9]
+        ]);
+
+        $result = $collection->collapse();
+
+        $this->assertEqualsCanonicalizing([1,2,3,4,5,6,7,8,9], $result->all());
+    }
+```
+Flat Method
+```php
+public function testFlatMap()
+    {
+        $collection = collect([
+            [
+                "name" => "jonathan",
+                "hobbies" => ["Coding", "Football"]
+            ],
+            [
+                "name" => "alphonso",
+                "hobbies" => ["Reading", "Explore"]
+            ]
+        ]);
+
+        $result = $collection->flatMap(function($item){
+            $hobbies = $item["hobbies"];
+            return $hobbies;
+        });
+
+        $this->assertEqualsCanonicalizing(["Coding", "Football", "Reading", "Explore"], $result->all());
+    }
+```

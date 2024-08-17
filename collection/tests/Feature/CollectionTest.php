@@ -122,7 +122,7 @@ class CollectionTest extends TestCase
         $collection2 = collect([4, 5, 6]);
         $collection3 = $collection1->concat($collection2);
 
-        $this->assertEqualsCanonicalizing([1,2,3,4,5,6], $collection3->all());
+        $this->assertEqualsCanonicalizing([1, 2, 3, 4, 5, 6], $collection3->all());
     }
 
     public function testCombine()
@@ -135,5 +135,39 @@ class CollectionTest extends TestCase
             "name" => "jonathan",
             "country" => "indonesia"
         ], $collection3->all());
+    }
+
+    public function testCollapse()
+    {
+        $collection = collect([
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9]
+        ]);
+
+        $result = $collection->collapse();
+
+        $this->assertEqualsCanonicalizing([1, 2, 3, 4, 5, 6, 7, 8, 9], $result->all());
+    }
+
+    public function testFlatMap()
+    {
+        $collection = collect([
+            [
+                "name" => "jonathan",
+                "hobbies" => ["Coding", "Football"]
+            ],
+            [
+                "name" => "alphonso",
+                "hobbies" => ["Reading", "Explore"]
+            ]
+        ]);
+
+        $result = $collection->flatMap(function($item){
+            $hobbies = $item["hobbies"];
+            return $hobbies;
+        });
+
+        $this->assertEqualsCanonicalizing(["Coding", "Football", "Reading", "Explore"], $result->all());
     }
 }
