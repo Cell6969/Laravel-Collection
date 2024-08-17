@@ -408,4 +408,71 @@ $this->assertEquals([
     ])
 ], $result->all());
 ```
+## Slciing
 
+![alt text](image-5.png)
+
+## Take and Skip
+Take => Mirip ke slicing lebih advanced
+
+Contoh implementasi
+```php
+public function testTake()
+    {
+        $collection = collect([1,2,3,4,5,6,7,8,9]);
+
+        // take
+        $result = $collection->take(3);
+        $this->assertEqualsCanonicalizing([1,2,3], $result->all());
+
+        // take until
+        $result = $collection->takeUntil(function($value, $key){
+            return $value == 3;
+        });
+        $this->assertEqualsCanonicalizing([1,2], $result->all());
+
+        // take while
+        $result = $collection->takeWhile(function($value, $key){
+            return $value < 3;
+        });
+        $this->assertEqualsCanonicalizing([1,2], $result->all());
+    }
+```
+
+Skip => berbanding terbalik dengan Take, yaitu mengambil data sisanya
+```php
+public function testSkip()
+    {
+        $collection = collect([1,2,3,4,5,6,7,8,9]);
+        
+        $result = $collection->skip(3);
+        $this->assertEqualsCanonicalizing([4,5,6,7,8,9], $result->values()->all());
+
+        $result = $collection->skipUntil(function($value, $key){
+            return $value == 3;
+        });
+        $this->assertEqualsCanonicalizing([3,4,5,6,7,8,9], $result->values()->all());
+
+        $result = $collection->skipWhile(function($value, $key){
+            return $value < 3 ;
+        });
+        $this->assertEqualsCanonicalizing([3,4,5,6,7,8,9], $result->values()->all());
+
+    }
+```
+## Chunked
+Operasi untuk memotong collection menjadi beberapa bagian.
+```php
+public function testChunk()
+    {
+        $collection = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+        $result = $collection->chunk(3);
+
+        var_dump($result->all()[1]->values());
+        $this->assertEqualsCanonicalizing([1, 2, 3], $result->all()[0]->values()->all());
+        $this->assertEqualsCanonicalizing([4, 5, 6], $result->all()[1]->values()->all());
+        $this->assertEquals([7, 8, 9], $result->all()[2]->values()->all());
+        $this->assertEquals([10], $result->all()[3]->values()->all());
+    }
+```
