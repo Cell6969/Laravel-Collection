@@ -505,3 +505,46 @@ public function testOrdering()
         $this->assertEqualsCanonicalizing([9,8,7,6,5,4,3,2,1], $result->values()->all());
     }
 ```
+
+## Agregate
+operasi untuk melakukan agregasi
+![alt text](image-10.png)
+
+## Reduce
+Operasi yang dilakukan untuk melakukan agregasi secara manual. Bentuk reduce
+![alt text](image-11.png)
+
+contoh :
+```php
+public function testReduce()
+    {
+        $collection = collect([1,2,3,4,5,6,7,8,9]);
+        $result = $collection->reduce(function($prev, $next){
+            return $prev + $next;
+        });
+
+        $this->assertEquals(45, $result);
+    }
+```
+## Lazy Collection
+Lazy collection berguna untuk manipulasi data besar. Singkatnya dia akan berfungsi meload data, tetapi tidak sekaligus, hanya dibutuhkan saja.
+Sebagai contoh:
+```php
+public function testLazyCollection()
+    {
+        $collection = LazyCollection::make(function(){
+            $value = 0;
+
+            while(true){
+                yield $value;
+                $value ++;
+            }
+        });
+
+        $result = $collection->take(10);
+        $this->assertEqualsCanonicalizing([0,1,2,3,4,5,6,7,8,9], $result->values()->all());
+
+        $result = $collection->take(1000);
+        var_dump($result->values()->all());
+    }
+```
