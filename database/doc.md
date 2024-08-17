@@ -19,3 +19,17 @@ CREATE TABLE categories (
     created_at timestamp
 )
 ```
+
+## Debug SQL Query
+untuk melihat query sql yang dijalankan oleh laravel, maka perlu mengaktifkan mode debug pada AppServiceProvider:
+```php
+...
+public function boot(): void
+    {
+        //
+        DB::listen(function(QueryExecuted $query){
+            Log::info($query->sql);
+        });
+    }
+...
+```
