@@ -311,3 +311,28 @@ public function testFilterIndex()
         $this->assertEquals([2,4,6,8,10], $result->values()->all());
     }
 ```
+## Partitioning
+Partitioning sangat berguna untuk mendapatkan 2 collection, data yg sesuai filter dan data yang tidak sesuai filter.
+```php
+public function testPartition()
+    {
+        $collection = collect([
+            "jonathan" => 80,
+            "alphonso" => 100,
+            "dono" => 90
+        ]);
+
+        [$filter, $notFilter] = $collection->partition(function($value, $key){
+            return $value >= 90;
+        });
+
+        $this->assertEquals([
+            "alphonso" => 100,
+            "dono" => 90
+        ], $filter->all());
+
+        $this->assertEquals([
+            "jonathan" => 80
+        ], $notFilter->all());
+    }
+```
