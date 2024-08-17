@@ -228,3 +228,9 @@ public function testFlatMap()
         $this->assertEqualsCanonicalizing(["Coding", "Football", "Reading", "Explore"], $result->all());
     }
 ```
+
+## String Representation
+Operasi transformasi untuk mengubah collection menjadi string. 
+```php
+
+```
