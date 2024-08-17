@@ -163,7 +163,7 @@ class CollectionTest extends TestCase
             ]
         ]);
 
-        $result = $collection->flatMap(function($item){
+        $result = $collection->flatMap(function ($item) {
             $hobbies = $item["hobbies"];
             return $hobbies;
         });
@@ -188,7 +188,7 @@ class CollectionTest extends TestCase
             "dono" => 90
         ]);
 
-        $result = $collection->filter(function($value, $key){
+        $result = $collection->filter(function ($value, $key) {
             return $value >= 90;
         });
 
@@ -200,13 +200,13 @@ class CollectionTest extends TestCase
 
     public function testFilterIndex()
     {
-        $collection = collect([1,2,3,4,5,6,7,8,9,10]);
+        $collection = collect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-        $result = $collection->filter(function($value, $key){
-            return $value %2 == 0;
+        $result = $collection->filter(function ($value, $key) {
+            return $value % 2 == 0;
         });
 
-        $this->assertEquals([2,4,6,8,10], $result->values()->all());
+        $this->assertEquals([2, 4, 6, 8, 10], $result->values()->all());
     }
 
     public function testPartition()
@@ -217,7 +217,7 @@ class CollectionTest extends TestCase
             "dono" => 90
         ]);
 
-        [$filter, $notFilter] = $collection->partition(function($value, $key){
+        [$filter, $notFilter] = $collection->partition(function ($value, $key) {
             return $value >= 90;
         });
 
@@ -229,5 +229,68 @@ class CollectionTest extends TestCase
         $this->assertEquals([
             "jonathan" => 80
         ], $notFilter->all());
+    }
+
+    public function testGroup()
+    {
+        $collection = collect([
+            [
+                "name" => "jonathan",
+                "department" => "IT"
+            ],
+            [
+                "name" => "dodi",
+                "department" => "IT"
+            ],
+            [
+                "name" => "dono",
+                "department" => "Marketing"
+            ],
+        ]);
+
+
+        $result = $collection->groupBy("department");
+
+        $this->assertEquals([
+            "IT" => collect([
+                [
+                    "name" => "jonathan",
+                    "department" => "IT"
+                ],
+                [
+                    "name" => "dodi",
+                    "department" => "IT"
+                ],
+            ]),
+            "Marketing" => collect([
+                [
+                    "name" => "dono",
+                    "department" => "Marketing"
+                ]
+            ])
+        ], $result->all());
+
+        $result = $collection->groupBy(function ($value, $key) {
+            return $value["department"];
+        });
+
+        $this->assertEquals([
+            "IT" => collect([
+                [
+                    "name" => "jonathan",
+                    "department" => "IT"
+                ],
+                [
+                    "name" => "dodi",
+                    "department" => "IT"
+                ],
+            ]),
+            "Marketing" => collect([
+                [
+                    "name" => "dono",
+                    "department" => "Marketing"
+                ]
+            ])
+        ], $result->all());
     }
 }

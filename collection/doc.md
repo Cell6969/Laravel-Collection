@@ -336,3 +336,76 @@ public function testPartition()
         ], $notFilter->all());
     }
 ```
+## Testing 
+Operasi untuk mengecek isi data di collection. Outputnya berupa boolean.
+![alt text](image-4.png)
+
+## Grouping
+Operasi untuk meng-group element di collection
+```php
+public function testGroup()
+    {
+        $collection = collect([
+            [
+                "name" => "jonathan",
+                "department" => "IT"
+            ],
+            [
+                "name" => "dodi",
+                "department" => "IT"
+            ],
+            [
+                "name" => "dono",
+                "department" => "Marketing"
+            ],
+        ]);
+
+
+        $result = $collection->groupBy("department");
+
+        $this->assertEquals([
+            "IT" => collect([
+                [
+                    "name" => "jonathan",
+                    "department" => "IT"
+                ],
+                [
+                    "name" => "dodi",
+                    "department" => "IT"
+                ],
+            ]),
+            "Marketing" => collect([
+                [
+                    "name" => "dono",
+                    "department" => "Marketing"
+                ]
+            ])
+        ], $result->all());
+    }
+```
+Mirip seperti  mapToGroup tetapi lebih proper. Misal jika ingin custom
+```php
+result = $collection->groupBy(function ($value, $key) {
+            return $value["department"];
+        });
+
+$this->assertEquals([
+    "IT" => collect([
+        [
+            "name" => "jonathan",
+            "department" => "IT"
+        ],
+        [
+            "name" => "dodi",
+            "department" => "IT"
+        ],
+    ]),
+    "Marketing" => collect([
+        [
+            "name" => "dono",
+            "department" => "Marketing"
+        ]
+    ])
+], $result->all());
+```
+
