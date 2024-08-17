@@ -179,4 +179,33 @@ class CollectionTest extends TestCase
         $this->assertEquals("jonathan-dono_alphonso", $collection->join("-", "_"));
         $this->assertEquals("jonathan,dono and alphonso", $collection->join(",", " and "));
     }
+
+    public function testFilter()
+    {
+        $collection = collect([
+            "jonathan" => 80,
+            "alphonso" => 100,
+            "dono" => 90
+        ]);
+
+        $result = $collection->filter(function($value, $key){
+            return $value >= 90;
+        });
+
+        $this->assertEquals([
+            "alphonso" => 100,
+            "dono" => 90
+        ], $result->all());
+    }
+
+    public function testFilterIndex()
+    {
+        $collection = collect([1,2,3,4,5,6,7,8,9,10]);
+
+        $result = $collection->filter(function($value, $key){
+            return $value %2 == 0;
+        });
+
+        $this->assertEquals([2,4,6,8,10], $result->values()->all());
+    }
 }

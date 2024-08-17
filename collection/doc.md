@@ -232,5 +232,82 @@ public function testFlatMap()
 ## String Representation
 Operasi transformasi untuk mengubah collection menjadi string. 
 ```php
+public function testStringRepresentation()
+    {
+        $collection = collect(["jonathan", "dono", "alphonso"]);
 
+        $this->assertEquals("jonathan-dono-alphonso", $collection->join("-"));
+        $this->assertEquals("jonathan-dono_alphonso", $collection->join("-", "_"));
+        $this->assertEquals("jonathan,dono and alphonso", $collection->join(",", " and "));
+    }
+```
+
+## Filtering
+filtering adalah operasi untuk mencari nilai true dengan kondisi. Jika nilai true maka data akan diambil sedangkan nilai false maka data akan dihapus. Contoh:
+```php
+public function testFilter()
+    {
+        $collection = collect([
+            "jonathan" => 80,
+            "alphonso" => 100,
+            "dono" => 90
+        ]);
+
+        $result = $collection->filter(function($value, $key){
+            return $value >= 90;
+        });
+
+        $this->assertEquals([
+            "alphonso" => 100,
+            "dono" => 90
+        ], $result->all());
+    }
+```
+
+Perlu diperhatikan ketika memfilter untuk index, sebagai contoh:
+```php
+public function testFilterIndex()
+    {
+        $collection = collect([1,2,3,4,5,6,7,8,9,10]);
+
+        $result = $collection->filter(function($value,$key){
+            return $value %2 == 0;
+        });
+
+        $this->assertEquals([2,4,6,8,10], $result->all());
+    }
+```
+akan terjadi error karena yang diget adalah index nya
+ekspektasi:
+```
+Array (
+    0 => 2
+    1 => 4
+    2 => 6
+    3 => 8
+    4 => 10
+)
+```
+actual
+```
+Array (
+    1 => 2
+    3 => 4
+    5 => 6
+    7 => 8
+    9 => 10
+)
+```
+Untuk mencegah hal tersebut maka yang kita collect adalah valuesnya
+```php
+public function testFilterIndex()
+    {
+        $collection = collect([1,2,3,4,5,6,7,8,9,10]);
+
+        $result = $collection->filter(function($value, $key){
+            return $value %2 == 0;
+        });
+
+        $this->assertEquals([2,4,6,8,10], $result->values()->all());
+    }
 ```
