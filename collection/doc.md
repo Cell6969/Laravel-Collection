@@ -25,3 +25,19 @@ public function testForEach()
 ## Manipulasi Collection
 ![alt text](image.png)
 
+Contoh penggunaan:
+```php
+public function testCrud()
+    {
+        // push 
+        $collection = collect([]);
+        $collection->push(1,2,3);
+        $this->assertEqualsCanonicalizing([1,2,3], $collection->all());
+
+        // pop
+        $result = $collection->pop();
+
+        $this->assertEquals(3, $result);
+        $this->assertEqualsCanonicalizing([1,2], $collection->all());
+    }
+```

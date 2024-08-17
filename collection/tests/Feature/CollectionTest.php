@@ -8,20 +8,33 @@ use Tests\TestCase;
 
 class CollectionTest extends TestCase
 {
-    public function testCreateCollection() {
-        $collection = collect([1,2,3]);
+    public function testCreateCollection()
+    {
+        $collection = collect([1, 2, 3]);
 
-        $this->assertEqualsCanonicalizing([1,2,3], $collection->all());
+        $this->assertEqualsCanonicalizing([1, 2, 3], $collection->all());
     }
 
     public function testForEach()
     {
-        $collection = collect([1,2,3,4,5,6,7,8,9]);
+        $collection = collect([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
         foreach ($collection as $key => $value) {
-            $this->assertEquals($key+1, $value);
+            $this->assertEquals($key + 1, $value);
         }
     }
 
-   
+    public function testCrud()
+    {
+        // push 
+        $collection = collect([]);
+        $collection->push(1,2,3);
+        $this->assertEqualsCanonicalizing([1,2,3], $collection->all());
+
+        // pop
+        $result = $collection->pop();
+
+        $this->assertEquals(3, $result);
+        $this->assertEqualsCanonicalizing([1,2], $collection->all());
+    }
 }
