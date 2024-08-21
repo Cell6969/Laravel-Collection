@@ -120,7 +120,7 @@ public function testWhereIn()
     }
 ```
 
-Case unutuk null dan not null:
+Case untuk null dan not null:
 ```php
 public function testWhereNull()
     {
@@ -134,6 +134,81 @@ public function testWhereNull()
             Log::info(json_encode($item));
         });
 
+    }
+```
+
+Case untuk cek waktu:
+```php
+ public function testWhereDate()
+    {
+        $this->insertCategories();
+
+        $collection = DB::table('categories')
+            ->whereDate("created_at", "2024-08-18")->get();
+
+        self::assertCount(3, $collection);
+
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+```
+## Update
+contoh implementasinya:
+```php
+public function testUpdate()
+    {
+        $this->insertCategories();
+
+        DB::table('categories')->where('id', '=', 'SMARTPHONE')
+            ->update([
+                "name" => "Handphone"
+            ]);
+
+        $collection = DB::table('categories')->where('name', '=', 'Handphone')
+            ->get();
+        
+
+        self::assertCount(1, $collection);
+
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+```
+
+Selain itu ada juga Upsert (Update or Insert) yakni dimana ketika data yang diupdate tidak ada maka akan membuat data baru
+```php
+public function testUpsert()
+    {
+        DB::table('categories')->updateOrInsert([
+            'id' => 'VOUCHER'
+        ], [
+            "name" => "Voucher",
+            "description" => "Ticket and Voucher",
+            "created_at" => "2022-08-18 10:10:10"
+        ]);
+
+        $collection = DB::table('categories')->where('id', '=', 'VOUCHER')->get();
+        self::assertCount(1, $collection);
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+```
+Selain itu bisa juga update increment maupun decrement di laravel. Sebagai contoh buat table baru bernama counters (query ada pada doc).
+Contoh implementasinya:
+```php
+public function testIncrement()
+    {
+        DB::table('counters')->where('id', '=', 'sample')->increment('counter', 1);
+
+        $collection = DB::table('counters')->where('id', '=', 'sample')->get();
+        self::assertCount(1, $collection);
+
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
     }
 ```
 

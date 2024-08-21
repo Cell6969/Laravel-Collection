@@ -40,7 +40,7 @@ class QueryBuilderTest extends TestCase
         $collection = DB::table('categories')->select(['id', 'name'])->get();
         self::assertNotNull($collection);
 
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -76,14 +76,14 @@ class QueryBuilderTest extends TestCase
     {
         $this->insertCategories();
 
-        $collection = DB::table("categories")->where(function (Builder $builder){
+        $collection = DB::table("categories")->where(function (Builder $builder) {
             $builder->where('id', '=', 'SMARTPHONE');
             $builder->orWhere('id', '=', 'LAPTOP');
         })->get();
 
         self::assertCount(2, $collection);
 
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -97,7 +97,7 @@ class QueryBuilderTest extends TestCase
             ->get();
 
         self::assertCount(4, $collection);
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -110,7 +110,7 @@ class QueryBuilderTest extends TestCase
 
         self::assertCount(2, $collection);
 
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -123,9 +123,71 @@ class QueryBuilderTest extends TestCase
 
         self::assertCount(4, $collection);
 
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function testWhereDate()
+    {
+        $this->insertCategories();
+
+        $collection = DB::table('categories')
+            ->whereDate("created_at", "2024-08-18")->get();
+
+        self::assertCount(3, $collection);
+
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function testUpdate()
+    {
+        $this->insertCategories();
+
+        DB::table('categories')->where('id', '=', 'SMARTPHONE')
+            ->update([
+                "name" => "Handphone"
+            ]);
+
+        $collection = DB::table('categories')->where('name', '=', 'Handphone')
+            ->get();
+        
+
+        self::assertCount(1, $collection);
+
         $collection->each(function($item){
             Log::info(json_encode($item));
         });
+    }
 
+    public function testUpsert()
+    {
+        DB::table('categories')->updateOrInsert([
+            'id' => 'VOUCHER'
+        ], [
+            "name" => "Voucher",
+            "description" => "Ticket and Voucher",
+            "created_at" => "2022-08-18 10:10:10"
+        ]);
+
+        $collection = DB::table('categories')->where('id', '=', 'VOUCHER')->get();
+        self::assertCount(1, $collection);
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function testIncrement()
+    {
+        DB::table('counters')->where('id', '=', 'sample')->increment('counter', 1);
+
+        $collection = DB::table('counters')->where('id', '=', 'sample')->get();
+        self::assertCount(1, $collection);
+
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
     }
 }
