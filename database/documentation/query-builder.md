@@ -266,3 +266,144 @@ untuk implementasinya:
 ```
 
 ## Ordering
+contoh implementasinya:
+```php
+public function testOrdering()
+    {
+        $this->insertProducts();
+
+        $collection = DB::table('products')->whereNotNull('id')
+            ->orderBy('price', 'desc')->orderBy('name', 'asc')->get();
+
+        self::assertCount(2, $collection);
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+```
+
+## Paging
+contoh implementasinya:
+```php
+public function testPaging()
+    {
+        $this->insertCategories();
+
+        $collection = DB::table('categories')
+            ->skip(2)
+            ->take(2)
+            ->get();
+        
+        self::assertCount(2, $collection);
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+```
+
+## Chunk
+sebagai contoh, buat seed untuk data di categories;
+```php
+ public function insertManyCategories()
+    {
+        for ($i = 0; $i < 100; $i++) {
+            DB::table('categories')->insert([
+                'id' => "CATEGORY-$i",
+                'name' => "Category $i",
+                'created_at' => "2020-10-10 10:10:10",
+            ]);
+        }
+    }
+```
+Kemudian untuk implementasinya:
+```php
+public function testChunk()
+    {
+        $this->insertManyCategories();
+
+        DB::table('categories')->orderBy('id')
+            ->chunk(10, function ($categories) {
+                self::assertNotNull($categories);
+                Log::info("Start Chunk");
+                $categories->each(function ($category) {
+                    Log::info(json_encode($category));
+                });
+                Log::info("End Chunk");
+            });
+    }
+```
+## Lazy Result
+Versi mudah nya dari chunk. Contoh implementasinya:
+```php
+public function testLazy()
+    {
+        $this->insertManyCategories();
+
+        $collection = DB::table('categories')->orderBy('id')->lazy(10);
+        self::assertNotNull($collection);
+
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });
+    }
+```
+
+## Cursor
+contoh implementasinya
+```php
+public function testCursor()
+    {
+        $this->insertManyCategories();
+
+        $collection = DB::table('categories')->orderBy('id')->cursor();
+
+        self::assertNotNull($collection);
+
+        $collection->each(function($item){
+            Log::info(json_encode($item));
+        });        
+    }
+```
+
+## Agregate
+Beberapa agregate function yang bisa digunakan:
+![alt text](image-3.png)
+
+## Lock
+Untuk melakukan locking, bisa sperti contoh berikut:
+```php
+public function testLocking()
+    {
+        $this->insertProducts();
+
+        DB::transaction(function () {
+            $collection = DB::table('products')
+                ->where('id', '=', '1')
+                ->lockForUpdate()
+                ->get();
+            self::assertCount(1, $collection);
+        });
+    }
+```
+
+## Pagination
+Contoh implementasinya:
+```php
+public function testPagination()
+    {
+        $this->insertCategories();
+
+        $paginate = DB::table('categories')->paginate(2, 1);
+
+        self::assertEquals(1, $paginate->currentPage());
+        self::assertEquals(2, $paginate->perPage());
+        self::assertEquals(2, $paginate->lastPage());
+        self::assertEquals(4, $paginate->total());
+
+        $collection = $paginate->items();
+        self::assertCount(2, $collection);
+        foreach($collection as $item) {
+            Log::info(json_encode($item));
+        }
+    }
+```

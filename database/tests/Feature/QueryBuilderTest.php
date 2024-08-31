@@ -14,6 +14,7 @@ class QueryBuilderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        DB::delete('delete from products');
         DB::delete('delete from categories');
     }
 
@@ -232,5 +233,115 @@ class QueryBuilderTest extends TestCase
         $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
+    }
+
+    public function testOrdering()
+    {
+        $this->insertProducts();
+
+        $collection = DB::table('products')->whereNotNull('id')
+            ->orderBy('price', 'desc')->orderBy('name', 'asc')->get();
+
+        self::assertCount(2, $collection);
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function testPaging()
+    {
+        $this->insertCategories();
+
+        $collection = DB::table('categories')
+            ->skip(2)
+            ->take(2)
+            ->get();
+
+        self::assertCount(2, $collection);
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function insertManyCategories()
+    {
+        for ($i = 0; $i < 100; $i++) {
+            DB::table('categories')->insert([
+                'id' => "CATEGORY-$i",
+                'name' => "Category $i",
+                'created_at' => "2020-10-10 10:10:10",
+            ]);
+        }
+    }
+
+    public function testChunk()
+    {
+        $this->insertManyCategories();
+
+        DB::table('categories')->orderBy('id')
+            ->chunk(10, function ($categories) {
+                self::assertNotNull($categories);
+                Log::info("Start Chunk");
+                $categories->each(function ($category) {
+                    Log::info(json_encode($category));
+                });
+                Log::info("End Chunk");
+            });
+    }
+
+    public function testLazy()
+    {
+        $this->insertManyCategories();
+
+        $collection = DB::table('categories')->orderBy('id')->lazy(10);
+        self::assertNotNull($collection);
+
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function testCursor()
+    {
+        $this->insertManyCategories();
+
+        $collection = DB::table('categories')->orderBy('id')->cursor();
+
+        self::assertNotNull($collection);
+
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
+    }
+
+    public function testLocking()
+    {
+        $this->insertProducts();
+
+        DB::transaction(function () {
+            $collection = DB::table('products')
+                ->where('id', '=', '1')
+                ->lockForUpdate()
+                ->get();
+            self::assertCount(1, $collection);
+        });
+    }
+
+    public function testPagination()
+    {
+        $this->insertCategories();
+
+        $paginate = DB::table('categories')->paginate(2, 1);
+
+        self::assertEquals(1, $paginate->currentPage());
+        self::assertEquals(2, $paginate->perPage());
+        self::assertEquals(2, $paginate->lastPage());
+        self::assertEquals(4, $paginate->total());
+
+        $collection = $paginate->items();
+        self::assertCount(2, $collection);
+        foreach($collection as $item) {
+            Log::info(json_encode($item));
+        }
     }
 }
