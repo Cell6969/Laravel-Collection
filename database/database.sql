@@ -34,3 +34,10 @@ CREATE TABLE products (
     created_at timestamp not null default current_timestamp,
     constraint fk_category_id foreign key (category_id) references categories(id)
 )engine innodb;
+
+-- DELETE all tables
+DROP TABLE products;
+
+DROP TABLE categories;
+
+DROP TABLE counters;
