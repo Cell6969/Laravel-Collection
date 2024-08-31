@@ -153,11 +153,11 @@ class QueryBuilderTest extends TestCase
 
         $collection = DB::table('categories')->where('name', '=', 'Handphone')
             ->get();
-        
+
 
         self::assertCount(1, $collection);
 
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -174,7 +174,7 @@ class QueryBuilderTest extends TestCase
 
         $collection = DB::table('categories')->where('id', '=', 'VOUCHER')->get();
         self::assertCount(1, $collection);
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -186,7 +186,7 @@ class QueryBuilderTest extends TestCase
         $collection = DB::table('counters')->where('id', '=', 'sample')->get();
         self::assertCount(1, $collection);
 
-        $collection->each(function($item){
+        $collection->each(function ($item) {
             Log::info(json_encode($item));
         });
     }
@@ -199,5 +199,38 @@ class QueryBuilderTest extends TestCase
 
         $collection = DB::table('categories')->where('id', '=', 'SMARTPHONE')->get();
         self::assertCount(0, $collection);
+    }
+
+    public function insertProducts()
+    {
+        $this->insertCategories();
+
+        DB::table('products')->insert([
+            "id" => "1",
+            "name" => "Iphone 14 Pro Max",
+            "category_id" => "SMARTPHONE",
+            "price" => 20000000
+        ]);
+        DB::table('products')->insert([
+            "id" => "2",
+            "name" => "Samsung galaxy S2 Ultra",
+            "category_id" => "SMARTPHONE",
+            "price" => 18000000
+        ]);
+    }
+
+    public function testJoin()
+    {
+        $this->insertProducts();
+
+        $collection = DB::table('products')
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->select('products.id', 'products.name', 'products.price', 'categories.name as category_name')
+            ->get();
+
+        self::assertCount(2, $collection);
+        $collection->each(function ($item) {
+            Log::info(json_encode($item));
+        });
     }
 }
