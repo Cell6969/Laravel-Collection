@@ -798,3 +798,13 @@ public function testEcho()
 
 apa yang terjadi ? yang terjadi adalah ketika template itu memanggil object yaitu Person, return nya adalah sesuai dengan service yanng sudah di daftarkan pada AppServiceProvider.
 
+## Optimizing Template
+Ketika menjalankan dengan mode production, maka baiknya perlu dicompile terlebih dahulu untuk. Untuk mengcompile view template bisa menggunakan command
+```
+php artisan view:cache
+```
+
+Hasil compile views akan disimpan di folder storage/framework/views. Untuk menghapus seluruh hasil compile
+```
+php artisan view:clear
+```
