@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Product;
 use App\Models\Scopes\IsActiveScope;
+use App\Models\Wallet;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -222,4 +225,46 @@ class CategoryTest extends TestCase
         self::assertCount(1, $products);
         Log::info($products);
     }
+
+    public function testOneToManyQuery()
+    {
+        $category = new Category();
+        $category->id = "FOOD";
+        $category->name = "Food";
+        $category->description = "Food Category";
+        $category->is_active = true;
+        $category->save();
+
+        $product =[
+            [
+                "id" => "1",
+                "name" => "Product 1",
+                "description" => "Product 1 description",
+            ],
+            [
+                "id" => "2",
+                "name" => "Product 2",
+                "description" => "Product 2 description",
+            ],
+        ];
+
+        $category->products()->createMany($product);
+        self::assertNotNull($category->id);
+
+        Log::info($category);
+    }
+
+    public function testRelationshipQuery()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class]);
+
+        $category = Category::query()->find("FOOD");
+        $HasStockproducts = $category->products;
+        self::assertCount(1, $HasStockproducts);
+
+        $outOfProducts = $category->products()->where('stock', '<', 0)->get();
+        self::assertCount(0, $outOfProducts);
+    }
+
+
 }

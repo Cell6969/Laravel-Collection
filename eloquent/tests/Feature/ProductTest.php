@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Product;
 use Database\Seeders\CategorySeeder;
 use Database\Seeders\ProductSeeder;
@@ -29,4 +30,25 @@ class ProductTest extends TestCase
         Log::info($category);
     }
 
+    public function testHasOneOfMany()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+        ]);
+
+        $category = Category::query()->find("FOOD");
+        self::assertNotNull($category);
+
+        $cheapestProduct = $category->cheapestProduct;
+        self::assertNotNull($cheapestProduct);
+        self::assertEquals("1", $cheapestProduct->id);
+        Log::info($cheapestProduct);
+
+        $mostExpensiveProduct = $category->mostExpensiveProduct;
+        self::assertNotNull($mostExpensiveProduct);
+        self::assertEquals("2", $mostExpensiveProduct->id);
+        Log::info($mostExpensiveProduct);
+
+    }
 }

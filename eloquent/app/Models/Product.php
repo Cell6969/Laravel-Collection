@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * 
+ *
  *
  * @property string $id
  * @property string $name
@@ -32,6 +32,10 @@ class Product extends Model
     protected $table = 'products';
     protected $primaryKey = "id";
     protected $keyType = "string";
+
+    protected $fillable = [
+        "id", "name", "description"
+    ];
 
     public $incrementing = false;
 

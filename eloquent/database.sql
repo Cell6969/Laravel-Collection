@@ -10,3 +10,6 @@ describe comments;
 SELECT * FROM comments;
 
 describe vouchers;
+
+
+select * from products;

@@ -519,3 +519,248 @@ public function testOneToMany()
         Log::info($category);
     }
 ```
+## Query Builder Relationship
+Ketika melakukan relations antar model menggunakan eloquent, bisa juga dilakukan proses CRUD dalam relasi tersebut.
+
+Contoh insert:
+```php
+public function testOneToOneQuery()
+    {
+        $customer = new Customer();
+        $customer->id = "ALDO";
+        $customer->name = "Aldo";
+        $customer->email = "aldo@gmail.com";
+        $customer->save();
+
+        // insert data to wallet of customer
+        $wallet = new Wallet();
+        $wallet->amount = 1_000_000;
+        $customer->wallet()->save($wallet);
+
+        self::assertNotNull($wallet->customer_id);
+    }
+```
+
+Untuk case one to many
+```php
+public function testOneToManyQuery()
+    {
+        $category = new Category();
+        $category->id = "FOOD";
+        $category->name = "Food";
+        $category->description = "Food Category";
+        $category->is_active = true;
+        $category->save();
+
+        $product =[
+            [
+                "id" => "1",
+                "name" => "Product 1",
+                "description" => "Product 1 description",
+            ],
+            [
+                "id" => "2",
+                "name" => "Product 2",
+                "description" => "Product 2 description",
+            ],
+        ];
+
+        $category->products()->createMany($product);
+        self::assertNotNull($category->id);
+
+        Log::info($category);
+    }
+```
+
+Selain jikalau ingin get query dengan conditional bisa dengan cara berikut:
+```php
+public function testRelationshipQuery()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class]);
+
+        $category = Category::query()->find("FOOD");
+        $HasStockproducts = $category->products;
+        self::assertCount(1, $HasStockproducts);
+
+        $outOfProducts = $category->products()->where('stock', '<', 0)->get();
+        self::assertCount(0, $outOfProducts);
+    }
+```
+
+## Has One of Many
+Ada kondisi dimana kita hanya ingin mengambil salah satu data saja dari relasi One To Many. Hal ini bisa dilakukan oleh query builder atau dari laravel menyediakan Has One of Many
+Sebagai contoh implementasi akan menggunakan data products dan category. Dalam hal ini kita ingin mendapatkan product termahal atau termurah dari category.
+
+Edit category model:
+```php
+class Category extends Model
+{
+    protected $table = "categories";
+    protected $primaryKey = "id";
+    protected $keyType = "string";
+    public $incrementing = false;
+    public $timestamps = false;
+
+    protected $fillable = [
+        "id",
+        "name",
+        "description",
+    ];
+
+    // Add relation to products
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, "category_id", "id");
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+        self::addGlobalScope(new IsActiveScope());
+    }
+
+    // add has one of many
+    public function cheapestProduct(): HasOne
+    {
+        return $this->hasOne(Product::class, "category_id", "id")->oldest("price"); // oldest = ascending
+    }
+
+    public function mostExpensiveProduct(): HasOne
+    {
+        return $this->hasOne(Product::class, "category_id", "id")->latest("price"); // latest = descending
+    }
+}
+```
+Ubah seeder pada product:
+```php
+public function run(): void
+    {
+        $product = new Product();
+        $product->id = "1";
+        $product->name = "Product 1";
+        $product->description = "Product 1 description";
+        $product->category_id = "FOOD";
+        $product->save();
+
+        $product2 = new Product();
+        $product2->id = "2";
+        $product2->name = "Product 2";
+        $product2->description = "Product 2 description";
+        $product2->category_id = "FOOD";
+        $product2->price = 200;
+        $product2->save();
+    }
+```
+
+Untuk penggunaan :
+```php
+public function testHasOneOfMany()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+        ]);
+
+        $category = Category::query()->find("FOOD");
+        self::assertNotNull($category);
+
+        $cheapestProduct = $category->cheapestProduct;
+        self::assertNotNull($cheapestProduct);
+        self::assertEquals("1", $cheapestProduct->id);
+        Log::info($cheapestProduct);
+
+        $mostExpensiveProduct = $category->mostExpensiveProduct;
+        self::assertNotNull($mostExpensiveProduct);
+        self::assertEquals("2", $mostExpensiveProduct->id);
+        Log::info($mostExpensiveProduct);
+
+    }
+```
+
+## Has One Through
+Ada case dimana ketika kita telah membuat relasi one to one,kita ingin membuat relasi one to one yang melewati dari satu model. Misal customer->wallet dan wallet->virtualAccount. Kita ingin menyambungkan customer ke virtualAccount.
+
+Contoh implementasi:
+1. Buat model VirtualAccount
+2. Define schema virtualAccount
+```php
+public function up(): void
+    {
+        Schema::create('virtual_accounts', function (Blueprint $table) {
+            $table->integerIncrements("id")->nullable(false);
+            $table->string("bank", 100)->nullable(false);
+            $table->string("va_number", 100)->nullable(false);
+            $table->unsignedInteger("wallet_id")->nullable(false);
+            $table->foreign("wallet_id")->on("wallets")->references("id");
+        });
+    }
+```
+3. Jalankan migrasi
+4. Ubah model pada wallet dan virtual_account
+
+wallet
+```php
+....
+ // add relation to virtual account
+    public function virtualAccount(): HasOne
+    {
+        return $this->hasOne(VirtualAccount::class, "wallet_id", "id");
+    }
+```
+
+virtual_account
+```php
+class VirtualAccount extends Model
+{
+    protected $table = 'virtual_accounts';
+    protected $primaryKey = "id";
+    protected $keyType = "int";
+    public $incrementing = false;
+    public $timestamps = false;
+
+    // add relation to wallet
+    public function wallet(): BelongsTo
+    {
+        return $this->belongsTo(Wallet::class, "wallet_id", "id");
+    }
+}
+```
+5. Tambahkan HasOneThrough pada Customer
+```php
+... 
+ // Add HasOneThrough relationship
+    public function virtualAccount(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            VirtualAccount::class, // Virtual Account Model
+            Wallet::class, // Wallet Model
+            "customer_id", // FK on wallet
+            "wallet_id", // FK on Virtual
+            "id", // PK on customer table
+            "id" // PK on wallet table
+        );
+    }
+```
+6. Buat seeder  virtual account
+7. Implementasi
+```php
+public function testHasOneThrough()
+    {
+        // seed data
+        $this->seed([
+            CustomerSeeder::class,
+            WalletSeeder::class,
+            VirtualAccountSeeder::class
+        ]);
+
+        $customer = Customer::query()->find("ALDO");
+        self::assertNotNull($customer);
+
+        $virtualAccount = $customer->virtualAccount;
+        self::assertNotNull($virtualAccount);
+        self::assertEquals('BCA', $virtualAccount->bank);
+        Log::info($virtualAccount);
+    }
+```
+Jadi dengan demikian dari customer bisa langsung mengakses virtual account melalui wallet
+

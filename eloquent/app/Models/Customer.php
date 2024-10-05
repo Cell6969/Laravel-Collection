@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Facades\App;
 
 
 /**
- *
+ * 
  *
  * @property string $id
  * @property string $name
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\App;
  * @method static Builder|Customer whereEmail($value)
  * @method static Builder|Customer whereId($value)
  * @method static Builder|Customer whereName($value)
+ * @property-read \App\Models\VirtualAccount|null $virtualAccount
  * @mixin \Eloquent
  */
 class Customer extends Model
@@ -38,5 +40,18 @@ class Customer extends Model
     public function wallet(): HasOne
     {
         return $this->hasOne(Wallet::class, "customer_id", "id");
+    }
+
+    // Add HasOneThrough relationship
+    public function virtualAccount(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            VirtualAccount::class, // Virtual Account Model
+            Wallet::class, // Wallet Model
+            "customer_id", // FK on wallet
+            "wallet_id", // FK on Virtual
+            "id", // PK on customer table
+            "id" // PK on wallet table
+        );
     }
 }

@@ -6,11 +6,12 @@ use App\Models\Scopes\IsActiveScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\App;
 
 
 /**
- * 
+ *
  *
  * @property string $id
  * @property string $name
@@ -27,6 +28,8 @@ use Illuminate\Support\Facades\App;
  * @method static \Illuminate\Database\Eloquent\Builder|Category whereName($value)
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $products
  * @property-read int|null $products_count
+ * @property-read \App\Models\Product|null $cheapestProduct
+ * @property-read \App\Models\Product|null $mostExpensiveProduct
  * @mixin \Eloquent
  */
 class Category extends Model
@@ -49,9 +52,20 @@ class Category extends Model
         return $this->hasMany(Product::class, "category_id", "id");
     }
 
-    protected static function boot():void
+    protected static function boot(): void
     {
         parent::boot();
         self::addGlobalScope(new IsActiveScope());
+    }
+
+    // add has one of many
+    public function cheapestProduct(): HasOne
+    {
+        return $this->hasOne(Product::class, "category_id", "id")->oldest("price"); // oldest = ascending
+    }
+
+    public function mostExpensiveProduct(): HasOne
+    {
+        return $this->hasOne(Product::class, "category_id", "id")->latest("price"); // latest = descending
     }
 }
