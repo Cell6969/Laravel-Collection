@@ -6,12 +6,13 @@ use App\Models\Scopes\IsActiveScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\App;
 
 
 /**
- *
+ * 
  *
  * @property string $id
  * @property string $name
@@ -30,6 +31,8 @@ use Illuminate\Support\Facades\App;
  * @property-read int|null $products_count
  * @property-read \App\Models\Product|null $cheapestProduct
  * @property-read \App\Models\Product|null $mostExpensiveProduct
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Review> $reviews
+ * @property-read int|null $reviews_count
  * @mixin \Eloquent
  */
 class Category extends Model
@@ -67,5 +70,18 @@ class Category extends Model
     public function mostExpensiveProduct(): HasOne
     {
         return $this->hasOne(Product::class, "category_id", "id")->latest("price"); // latest = descending
+    }
+
+    // Add HasManyThrough
+    public function reviews():HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Review::class,
+            Product::class,
+            "category_id",
+            "product_id",
+            "id",
+            "id"
+        );
     }
 }

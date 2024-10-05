@@ -8,7 +8,9 @@ use App\Models\Product;
 use App\Models\Scopes\IsActiveScope;
 use App\Models\Wallet;
 use Database\Seeders\CategorySeeder;
+use Database\Seeders\CustomerSeeder;
 use Database\Seeders\ProductSeeder;
+use Database\Seeders\ReviewSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Log;
@@ -266,5 +268,22 @@ class CategoryTest extends TestCase
         self::assertCount(0, $outOfProducts);
     }
 
+    public function testHasManyThrough()
+    {
+        // seed data
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            CustomerSeeder::class,
+            ReviewSeeder::class
+        ]);
 
+        $category = Category::query()->find("FOOD");
+        self::assertNotNull($category);
+
+        $reviews = $category->reviews;
+        self::assertNotNull($reviews);
+        self::assertCount(2, $reviews);
+        Log::info($reviews);
+    }
 }

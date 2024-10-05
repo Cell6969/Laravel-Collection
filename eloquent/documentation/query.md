@@ -764,3 +764,120 @@ public function testHasOneThrough()
 ```
 Jadi dengan demikian dari customer bisa langsung mengakses virtual account melalui wallet
 
+## Has Many Through
+Mirip dengan HasOneThrough tetapi kasusnya untuk OneToMany. Sebagai contoh, dari category terdapat product dan dari product terdapat review
+
+Contoh implementasi:
+1. Buat model Review
+2. Define model review
+```php
+public function up(): void
+    {
+        Schema::create('reviews', function (Blueprint $table) {
+            $table->id();
+            $table->string('product_id', 100)->nullable(false);
+            $table->unsignedInteger("rating")->nullable(false);
+            $table->string("customer_id", 100)->nullable(false);
+            $table->text("comment")->nullable();
+
+            $table->foreign("product_id")->on("products")->references("id");
+            $table->foreign("customer_id")->on("customers")->references("id");
+        });
+    }
+```
+3. Jalankan migrasi. Pada kasus ini product memiliki banyak review dan customer memiliki banyak review
+4. Relasikan customer ke review dan product ke review
+```php
+... 
+// Add HasManyThrough
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, "customer_id", "id");
+    }
+```
+
+```php
+... 
+// add relation HasMany to review
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'product_id', 'id');
+    }
+```
+5. Edit table review
+```php
+class Review extends Model
+{
+    protected $table = 'reviews';
+    protected $primaryKey = 'id';
+    protected $keyType = 'bigInt';
+    public $incrementing = true;
+    public $timestamps = false;
+
+    // add fk relationship
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'id');
+    }
+}
+```
+6. Tambahkan HasManyThrough pada Category
+```php
+... 
+public function reviews():HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Review::class,
+            Product::class,
+            "category_id",
+            "product_id",
+            "id",
+            "id"
+        );
+    }
+```
+dengan demikian dari category bisa mendapatkan banyak review.
+7. Buat seeder review
+```php
+public function run(): void
+    {
+        $review = new Review();
+        $review->product_id = "1";
+        $review->customer_id = "ALDO";
+        $review->rating = 5;
+        $review->comment = "Good";
+        $review->save();
+
+        $review2 = new Review();
+        $review2->product_id = "2";
+        $review2->customer_id = "ALDO";
+        $review2->rating = 4;
+        $review2->comment = "Not Bad";
+        $review2->save();
+    }
+```
+8. Implementasi HasManyThrough
+```php
+public function testHasManyThrough()
+    {
+        // seed data
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            CustomerSeeder::class,
+            ReviewSeeder::class
+        ]);
+
+        $category = Category::query()->find("FOOD");
+        self::assertNotNull($category);
+
+        $reviews = $category->reviews;
+        self::assertNotNull($reviews);
+        self::assertCount(2, $reviews);
+    }
+```

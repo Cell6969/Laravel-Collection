@@ -5,13 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Facades\App;
 
 
 /**
- * 
+ *
  *
  * @property string $id
  * @property string $name
@@ -53,5 +55,11 @@ class Customer extends Model
             "id", // PK on customer table
             "id" // PK on wallet table
         );
+    }
+
+    // Add HasManyThrough
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, "customer_id", "id");
     }
 }
