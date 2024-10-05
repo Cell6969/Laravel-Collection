@@ -5,12 +5,29 @@ namespace App\Models;
 use App\Models\Scopes\IsActiveScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\App;
+
 
 /**
- * @Property string id
- * @Property string name
- * @Property string description
- * @Property boolean is_active
+ * 
+ *
+ * @property string $id
+ * @property string $name
+ * @property string|null $description
+ * @property string $created_at
+ * @property int|null $is_active
+ * @method static \Illuminate\Database\Eloquent\Builder|Category newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Category newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder|Category query()
+ * @method static \Illuminate\Database\Eloquent\Builder|Category whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Category whereDescription($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Category whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Category whereIsActive($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Category whereName($value)
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $products
+ * @property-read int|null $products_count
+ * @mixin \Eloquent
  */
 class Category extends Model
 {
@@ -25,6 +42,12 @@ class Category extends Model
         "name",
         "description",
     ];
+
+    // Add relation to products
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class, "category_id", "id");
+    }
 
     protected static function boot():void
     {

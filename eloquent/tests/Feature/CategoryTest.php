@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Scopes\IsActiveScope;
 use Database\Seeders\CategorySeeder;
+use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertTrue;
@@ -173,8 +175,8 @@ class CategoryTest extends TestCase
         $this->seed(CategorySeeder::class);
 
         $request = [
-          "name" => "Food Updated",
-          "description" => "Food Category Updated",
+            "name" => "Food Updated",
+            "description" => "Food Category Updated",
         ];
 
         $category = Category::query()->find("FOOD");
@@ -193,6 +195,7 @@ class CategoryTest extends TestCase
         $category->is_active = false;
         $category->save();
 
+
         $category = Category::query()->find("FOOD");
         self::assertNull($category);
 
@@ -201,4 +204,22 @@ class CategoryTest extends TestCase
         self::assertNotNull($category);
     }
 
+    public function testOneToMany()
+    {
+        // seed data
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class
+        ]);
+
+        $category = Category::query()->find("FOOD");
+        self::assertNotNull($category);
+
+        // find product
+        $products = $category->products;
+        self::assertNotNull($products);
+
+        self::assertCount(1, $products);
+        Log::info($products);
+    }
 }
