@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Customer;
 use App\Models\Product;
 use Database\Seeders\CategorySeeder;
+use Database\Seeders\CustomerSeeder;
+use Database\Seeders\ImageSeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -49,6 +52,17 @@ class ProductTest extends TestCase
         self::assertNotNull($mostExpensiveProduct);
         self::assertEquals("2", $mostExpensiveProduct->id);
         Log::info($mostExpensiveProduct);
+    }
 
+    public function testOneToOnePolymorphic()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class,ImageSeeder::class]);
+
+        $product = Product::query()->find("1");
+        self::assertNotNull($product);
+
+        $image = $product->image;
+        self::assertNotNull($image);
+        self::assertEquals("https://image.com/2.jpg", $image->url);
     }
 }

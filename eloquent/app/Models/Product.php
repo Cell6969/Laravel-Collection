@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
  * 
@@ -32,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Customer> $likedByCustomer
  * @property-read int|null $liked_by_customer_count
  * @property-read \App\Models\Like $pivot
+ * @property-read \App\Models\Image|null $image
  * @mixin \Eloquent
  */
 class Product extends Model
@@ -69,5 +71,11 @@ class Product extends Model
             'product_id',
             'customer_id')->withPivot("created_at")
             ->using(Like::class);
+    }
+
+    // Add Morphone
+    public function image(): MorphOne
+    {
+        return $this->morphOne(Image::class, 'imageable');
     }
 }

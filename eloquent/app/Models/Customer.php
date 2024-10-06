@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Date;
 
@@ -36,6 +37,7 @@ use Illuminate\Support\Facades\Date;
  * @property-read \App\Models\Like $pivot
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $likeProductsLastWeek
  * @property-read int|null $like_products_last_week_count
+ * @property-read \App\Models\Image|null $image
  * @mixin \Eloquent
  */
 class Customer extends Model
@@ -97,5 +99,11 @@ class Customer extends Model
             ->withPivot("created_at")
             ->wherePivot("created_at", ">=", Date::now()->addDays(-7))
             ->using(Like::class); // add using like class
+    }
+
+    // Add Morphone
+    public function image(): MorphOne
+    {
+        return $this->morphOne(Image::class, "imageable");
     }
 }

@@ -1126,5 +1126,76 @@ Jika dilihat pada case sebelumnya, kita hanyak bisa mengakses attribut pada pivo
 Dengan demikian pivot sudah sama seperti model biasa, dikarenakan sudah menjadi object.
 
 # Polymorphic Relationships
-Polymorphic relationships adalah
+Polymorphic relationships adalah konsep dimana pada 1 table memiliki foreign key ke multiple table tergantung tipe relasinya. Konsep ini sedikit melenceng dari relational database pada umumnya.
 
+tipe relationship:
+1. One to One Polymorphic
+2. One to Many Polymorphic
+3. One of Many Polymorphic
+4. Many to Many Polymorphic
+
+## One To One Polymorphic
+Mirip dengan One to One namun relasinya bisa lebih dari satu model. Misal Customer dan Product punya satu Image. Sehingga model Image akan terpisah untuk Customer dan Product. Namun dengan polymorphic kita bisa membuat 1 model Image namun memiliki 2 FK untuk Customer dan juga Product
+1. Buat model Image
+2. Define schema Image
+```php
+public function up(): void
+    {
+        Schema::create('images', function (Blueprint $table) {
+            $table->id();
+            $table->string("url", 255)->nullable(false);
+            $table->string("imageable_id", 100)->nullable(false);
+            $table->string("imageable_type", 200)->nullable(false);
+            $table->unique(["imageable_id", "imageable_type"]);
+        });
+    }
+```
+3. Jalankan migrasi
+4. Update model Image
+```php
+class Image extends Model
+{
+    protected $table = 'images';
+    protected $primaryKey = 'id';
+    protected $keyType = 'int';
+    public $incrementing = true;
+    public $timestamps = false;
+
+    // add morph
+    public function imageable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+}
+```
+5. Kemudian update table customer dan product untuk tambahan morphOne
+6. Update Image Seeder
+7. Penggunaan:
+```php
+public function testOneToOnePolymorphic()
+    {
+        $this->seed([CustomerSeeder::class, ImageSeeder::class]);
+
+        $customer = Customer::query()->find("ALDO");
+        self::assertNotNull($customer);
+
+        $image = $customer->image;
+        self::assertNotNull($image);
+        self::assertEquals("https://image.com/1.jpg", $image->url);
+    }
+```
+Untuk bagian product
+```php
+public function testOneToOnePolymorphic()
+    {
+        $this->seed([CategorySeeder::class, ProductSeeder::class,ImageSeeder::class]);
+
+        $product = Product::query()->find("1");
+        self::assertNotNull($product);
+
+        $image = $product->image;
+        self::assertNotNull($image);
+        self::assertEquals("https://image.com/2.jpg", $image->url);
+    }
+```
+Dengan demikian dengan 1 model Image, bisa direlasikan dengan Customer maupun Product.
