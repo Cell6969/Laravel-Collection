@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read int|null $reviews_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Customer> $likedByCustomer
  * @property-read int|null $liked_by_customer_count
+ * @property-read \App\Models\Like $pivot
  * @mixin \Eloquent
  */
 class Product extends Model
@@ -66,6 +67,7 @@ class Product extends Model
             Customer::class,
             'customers_likes_products',
             'product_id',
-            'customer_id')->withPivot("created_at");
+            'customer_id')->withPivot("created_at")
+            ->using(Like::class);
     }
 }

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Date;
 
 
 /**
- *
+ * 
  *
  * @property string $id
  * @property string $name
@@ -33,6 +33,9 @@ use Illuminate\Support\Facades\Date;
  * @property-read int|null $like_products_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Review> $reviews
  * @property-read int|null $reviews_count
+ * @property-read \App\Models\Like $pivot
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $likeProductsLastWeek
+ * @property-read int|null $like_products_last_week_count
  * @mixin \Eloquent
  */
 class Customer extends Model
@@ -78,7 +81,9 @@ class Customer extends Model
             'customers_likes_products', // table go through
             'customer_id', // key origin on table go through
             'product_id' // key related on table go through
-        )->withPivot("created_at");
+        )
+            ->withPivot("created_at")
+            ->using(Like::class); // add using like class
     }
 
     public function likeProductsLastWeek(): BelongsToMany
@@ -90,6 +95,7 @@ class Customer extends Model
             'product_id' // key related on table go through
         )
             ->withPivot("created_at")
-            ->wherePivot("created_at", ">=", Date::now()->addDays(-7));
+            ->wherePivot("created_at", ">=", Date::now()->addDays(-7))
+            ->using(Like::class); // add using like class
     }
 }

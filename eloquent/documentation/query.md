@@ -963,6 +963,7 @@ public function testManyToManyDetach()
     }
 ```
 
+# Pivot
 ## Intermediate Table
 Table yang menghubungkan antara relasi Many to Many disebut Intermediate. Pada pembuatan Many to Many, kadang table Intermediate ini memiliki attribut selain 2 fk.
 
@@ -1039,3 +1040,91 @@ public function testPivotAttributeCondition()
         }
     }
 ```
+## Pivot Model
+Jika pada intermediate table memiliki kolom selain fk, baiknya dibuat kan pivot model namun pivot model bukan dari turunan class model melainkan pivot. Hal ini dikarenakan primary key yang dihandle lebih dari 1.
+
+Sebagai Contoh, buat model like.
+```php
+class Like extends Pivot
+{
+    protected $table = "customers_likes_products";
+    protected $foreignKey = "customer_id";
+    protected $relatedKey = "product_id";
+    public $timestamps = false;
+
+    public function usesTimestamps(): bool // dikarenakan logic created_at dan updated_at pada pivot
+    {
+        return false;
+    }
+    
+    // add relation
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'id');
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id', 'id');
+    }
+}
+```
+Perlu diperhatikan kita harus meng-override method pada usesTimeStamp, dikarenakak by default Pivot Model menggunakan logic updated_at. Kemudian update model Customer dan Product
+```php
+\App\Models\Customer
+... 
+public function likeProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customers_likes_products', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        )
+            ->withPivot("created_at")
+            ->using(Like::class); // add using like class
+    }
+
+    public function likeProductsLastWeek(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customers_likes_products', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        )
+            ->withPivot("created_at")
+            ->wherePivot("created_at", ">=", Date::now()->addDays(-7))
+            ->using(Like::class); // add using like class
+    }
+```
+
+Kemudian pada implementasinya:
+```php
+public function testPivotModel()
+    {
+        $this->testManyToMany();
+
+        $customer = Customer::query()->find("ALDO");
+        $products = $customer->likeProducts;
+
+        foreach ($products as $product) {
+            $pivot = $product->pivot; // => pivot disini sudah berupa object Model Like
+            self::assertNotNull($pivot);
+            self::assertNotNull($pivot->customer_id);
+            self::assertNotNull($pivot->product_id);
+            self::assertNotNull($pivot->created_at);
+
+            self::assertNotNull($pivot->customer);
+            self::assertNotNull($pivot->product);
+            Log::info($pivot);
+        }
+    }
+```
+Jika dilihat pada case sebelumnya, kita hanyak bisa mengakses attribut pada pivot namun sekarang karena pivot sudah merupakan object, kita bisa mengakes object customer dan product.
+
+Dengan demikian pivot sudah sama seperti model biasa, dikarenakan sudah menjadi object.
+
+# Polymorphic Relationships
+Polymorphic relationships adalah
+
