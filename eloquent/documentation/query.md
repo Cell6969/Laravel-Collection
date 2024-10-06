@@ -881,3 +881,161 @@ public function testHasManyThrough()
         self::assertCount(2, $reviews);
     }
 ```
+
+## Many to Many
+eloquent juga mendukung relasi many to many pada model. Sebagai contoh adalah fitur likes, dimana Customer bisa likes ke banyak product dan satu product bisa di-likes oleh banyak Customer
+Customer->likes->product
+1. Buat migrasi untuk table customer yang bisa melakuka likes
+```php
+public function up(): void
+    {
+        Schema::create('customers_likes_products', function (Blueprint $table) {
+            $table->string('customer_id', 100)->nullable(false);
+            $table->string('product_id', 100)->nullable(false);
+            $table->primary(['customer_id', 'product_id']);
+            $table->foreign('customer_id')->references('id')->on('customers');
+            $table->foreign('product_id')->references('id')->on('products');
+        });
+    }
+```
+2. Tambahkan BelongsToMany pada customer dan product
+
+Customer
+```php
+... 
+ // Add BelongsToMany
+    public function likeProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customer_likes_product', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        );
+    }
+```
+Product
+```php
+... 
+// Add BelongsToMany
+    public function likedByCustomer(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'customer_likes_products',
+            'product_id',
+            'customer_id');
+    }
+```
+3. Jalankan migrasi untuk pembuatan table customers_likes_products
+4. Ketika melakukan implementasi misal untuk insert data, tidak bisa langsung dikarenakan tidak ada model jembatan. Hal ini bisa dilakukan menggunakan attach
+```php
+public function testManyToMany()
+    {
+        $this->seed([CustomerSeeder::class, CategorySeeder::class, ProductSeeder::class]);
+
+        $customer = Customer::query()->find("ALDO");
+        self::assertNotNull($customer);
+
+
+        $customer->likeProducts()->attach("1");
+        $products = $customer->likeProducts;
+        self::assertCount(1, $products);
+
+        self::assertEquals("1", $products[0]->id);
+    }
+```
+Pada code diatas artinya, kita mencari customer ALDO, kemudian customer aldo tersebut akan melike products dengan id "1". Pada proses attach, dibelakang melakukan insert data ke table customers_likes_products
+
+Untuk case menghapus relasi many to many, karena tidak ada model penghubungnya maka bisa menggunakan detach.
+```php
+public function testManyToManyDetach()
+    {
+        $this->testManyToMany();
+
+        $customer = Customer::query()->find("ALDO");
+        // detach products
+        $customer->likeProducts()->detach("1");
+
+        $products = $customer->likeProducts;
+        self::assertCount(1, $products);
+        Log::info($products);
+    }
+```
+
+## Intermediate Table
+Table yang menghubungkan antara relasi Many to Many disebut Intermediate. Pada pembuatan Many to Many, kadang table Intermediate ini memiliki attribut selain 2 fk.
+
+Contoh ,pada table customers_likes_products tambahkan kolom created_at.
+
+Untuk mengambil data dari intermediate table itu menggunakan pivot attribute. Biasanya pada table intermediate hanya ada 2 attribute yaitu fk 1 dan fk2. Namun jikalau ada tambahan attribute yang ingin diambil bisa menggunakan withPivot.
+
+Customer
+```php
+... 
+public function likeProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customers_likes_products', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        )->withPivot("created_at");
+    }
+```
+
+kemudian pada implementasi:
+```php
+public function testPivotAttribute()
+    {
+        // seed data
+        $this->testManyToMany();
+
+        $customer = Customer::query()->find("ALDO");
+        $products = $customer->likeProducts;
+
+        foreach ($products as $product) {
+            $pivot = $product->pivot;
+            self::assertNotNull($pivot);
+            self::assertNotNull($pivot->customer_id);
+            self::assertNotNull($pivot->product_id);
+            self::assertNotNull($pivot->created_at);
+            Log::info($pivot);
+        }
+    }
+```
+
+Selain itu bisa juga melakukan filter pada pivot, misal hanya ingin mengambil data like seminggu terakhir
+```php
+... 
+public function likeProductsLastWeek(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customers_likes_products', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        )
+            ->withPivot("created_at")
+            ->wherePivot("created_at", ">=", Date::now()->addDays(-7));
+    }
+```
+
+unit testnya:
+```php
+public function testPivotAttributeCondition()
+    {
+        // seed data
+        $this->testManyToMany();
+
+        $customer = Customer::query()->find("ALDO");
+        $products = $customer->likeProductsLastWeek;
+        foreach ($products as $product) {
+            $pivot = $product->pivot;
+            self::assertNotNull($pivot);
+            self::assertNotNull($pivot->customer_id);
+            self::assertNotNull($pivot->product_id);
+            self::assertNotNull($pivot->created_at);
+        }
+    }
+```

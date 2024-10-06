@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -28,6 +29,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @method static \Illuminate\Database\Eloquent\Builder|Product whereStock($value)
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Review> $reviews
  * @property-read int|null $reviews_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Customer> $likedByCustomer
+ * @property-read int|null $liked_by_customer_count
  * @mixin \Eloquent
  */
 class Product extends Model
@@ -54,5 +57,15 @@ class Product extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class, 'product_id', 'id');
+    }
+
+    // Add BelongsToMany
+    public function likedByCustomer(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'customers_likes_products',
+            'product_id',
+            'customer_id')->withPivot("created_at");
     }
 }

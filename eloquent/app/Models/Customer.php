@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Date;
 
 
 /**
@@ -26,6 +29,10 @@ use Illuminate\Support\Facades\App;
  * @method static Builder|Customer whereId($value)
  * @method static Builder|Customer whereName($value)
  * @property-read \App\Models\VirtualAccount|null $virtualAccount
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $likeProducts
+ * @property-read int|null $like_products_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Review> $reviews
+ * @property-read int|null $reviews_count
  * @mixin \Eloquent
  */
 class Customer extends Model
@@ -61,5 +68,28 @@ class Customer extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class, "customer_id", "id");
+    }
+
+    // Add BelongsToMany
+    public function likeProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customers_likes_products', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        )->withPivot("created_at");
+    }
+
+    public function likeProductsLastWeek(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,  // add relation to product
+            'customers_likes_products', // table go through
+            'customer_id', // key origin on table go through
+            'product_id' // key related on table go through
+        )
+            ->withPivot("created_at")
+            ->wherePivot("created_at", ">=", Date::now()->addDays(-7));
     }
 }
