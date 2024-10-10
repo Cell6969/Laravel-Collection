@@ -28,7 +28,7 @@ class CommentSeeder extends Seeder
         $comment->email = "aldo@gmail.com";
         $comment->title = "title";
         $comment->commentable_id = $product->id;
-        $comment->commentable_type = Product::class;
+        $comment->commentable_type = 'product'; // change to aliasing type
         $comment->save();
     }
 
@@ -41,7 +41,7 @@ class CommentSeeder extends Seeder
         $comment->email = "aldo@gmail.com";
         $comment->title = "title";
         $comment->commentable_id = $voucher->id;
-        $comment->commentable_type = Voucher::class;
+        $comment->commentable_type = 'voucher'; // change to aliasing type
         $comment->save();
     }
 }

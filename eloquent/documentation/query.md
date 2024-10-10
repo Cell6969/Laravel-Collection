@@ -1437,3 +1437,51 @@ public function tags(): BelongsToMany
         }
     }
 ```
+
+## Polymorphic Types
+By default, relasi polymorphic akan menggunakan nama Class Model. Namun hal ini cukup berbahaya jika ada perubahan nama class Model. Hal ini bisa dicega jika menambahkan type untuk Polymorphic pada Service Provider
+```php
+\App\Providers\AppServiceProvider
+public function boot(): void
+    {
+        //
+        DB::listen(function ($query) {
+            Log::info("Query:  {$query->sql}");
+        });
+
+        Relation::enforceMorphMap([
+            "product" => Product::class,
+            "voucher" => Voucher::class,
+            "customer" => Customer::class,
+        ]);
+    }
+```
+Selanjutnya harus mengubah type pada query polymorphic, contoh:
+```php
+private function createCommentsForProducts(): void
+    {
+        $product = Product::query()->find("1");
+
+        $comment = new Comment();
+
+        $comment->email = "aldo@gmail.com";
+        $comment->title = "title";
+        $comment->commentable_id = $product->id;
+        $comment->commentable_type = 'product'; // change to aliasing type
+        $comment->save();
+    }
+
+    private function createCommentsForVoucher()
+    {
+        $voucher = Voucher::query()->first();
+
+        $comment = new Comment();
+
+        $comment->email = "aldo@gmail.com";
+        $comment->title = "title";
+        $comment->commentable_id = $voucher->id;
+        $comment->commentable_type = 'voucher'; // change to aliasing type
+        $comment->save();
+    }
+```
+dengan demikian jikalau ada perubahan nama entah itu class atau namespace tidak akan masalah selama nama aliasingnya tetap sama.

@@ -16,3 +16,5 @@ select * from products;
 
 
 describe taggables;
+
+select * from images;
