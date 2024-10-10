@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * 
@@ -23,6 +24,11 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder|Comment whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Comment whereTitle($value)
  * @method static \Illuminate\Database\Eloquent\Builder|Comment whereUpdatedAt($value)
+ * @property string $commentable_id
+ * @property string $commentable_type
+ * @property-read Model|\Eloquent $commentable
+ * @method static \Illuminate\Database\Eloquent\Builder|Comment whereCommentableId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|Comment whereCommentableType($value)
  * @mixin \Eloquent
  */
 class Comment extends Model
@@ -38,4 +44,10 @@ class Comment extends Model
         "title" => "Default title",
         "comment" => "Default Comment"
     ];
+
+    // add morph to
+    public function commentable(): MorphTo
+    {
+        return $this->morphTo();
+    }
 }

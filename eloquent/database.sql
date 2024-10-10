@@ -13,3 +13,6 @@ describe vouchers;
 
 
 select * from products;
+
+
+describe taggables;

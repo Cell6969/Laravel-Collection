@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 /**
- * 
+ *
  *
  * @property string $id
  * @property string $name
@@ -34,6 +35,8 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
  * @property-read int|null $liked_by_customer_count
  * @property-read \App\Models\Like $pivot
  * @property-read \App\Models\Image|null $image
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Comment> $comments
+ * @property-read int|null $comments_count
  * @mixin \Eloquent
  */
 class Product extends Model
@@ -77,5 +80,29 @@ class Product extends Model
     public function image(): MorphOne
     {
         return $this->morphOne(Image::class, 'imageable');
+    }
+
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    // Add One of Many Polymorphic
+    public function latestComment(): MorphOne
+    {
+        return $this->morphOne(Comment::class, 'commentable')
+            ->latest("created_at");
+    }
+
+    public function oldestComment(): MorphOne
+    {
+        return $this->morphOne(Comment::class, 'commentable')
+            ->oldest("created_at");
+    }
+
+    // Add many to many polymorphic
+    public function tags(): BelongsToMany
+    {
+        return $this->morphToMany(Tag::class, 'taggable');
     }
 }

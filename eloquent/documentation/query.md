@@ -1134,8 +1134,19 @@ tipe relationship:
 3. One of Many Polymorphic
 4. Many to Many Polymorphic
 
+untuk mempermudah visualisasi tanda berikut bisa menjadi bantuan:
+
+-> One to One
+
+--> One to Many
+
+---> Many to Many
+
 ## One To One Polymorphic
 Mirip dengan One to One namun relasinya bisa lebih dari satu model. Misal Customer dan Product punya satu Image. Sehingga model Image akan terpisah untuk Customer dan Product. Namun dengan polymorphic kita bisa membuat 1 model Image namun memiliki 2 FK untuk Customer dan juga Product
+
+Customer <- Image -> Product
+
 1. Buat model Image
 2. Define schema Image
 ```php
@@ -1199,3 +1210,230 @@ public function testOneToOnePolymorphic()
     }
 ```
 Dengan demikian dengan 1 model Image, bisa direlasikan dengan Customer maupun Product.
+## One To Many Polymorphic
+Sebenarnya mirip dengan One To Many namun dia tidak membentuk unique constrain dikarenakan bisa lebih dari satu. Semisal ada data Comment. Pada Product dan Voucher akan memiliki banyak comment.
+
+Product <-- Comment --> Voucher
+
+Artinya pada Product dan Voucher bisa menambahkan comment ke Model Comment yang sama.
+
+Sebelumnya sudah ada table comment, oleh karena itu hanya menambahkan field untuk polymorphic
+1. Update schema Comment
+```php
+ public function up(): void
+    {
+        Schema::table('comments', function (Blueprint $table) {
+            $table->string('commentable_id', 100)->nullable(false);
+            $table->string('commentable_type', 100)->nullable(false);
+        });
+    }
+```
+2. Jalankan migrasi
+3. Tambahkan MorphTo pada Model Comment
+```php
+\App\Models\Comment 
+... 
+// add morph to
+    public function commentable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+```
+4. Tambahkan attribut MorphMany di Product dan Voucher.
+```php
+\App\Models\Product 
+... 
+public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+```
+5. Tambahkan  Comment Seeder
+```php
+private function createCommentsForProducts(): void
+    {
+        $product = Product::query()->find("1");
+
+        $comment = new Comment();
+
+        $comment->email = "aldo@gmail.com";
+        $comment->title = "title";
+        $comment->commentable_id = $product->id;
+        $comment->commentable_type = Product::class;
+        $comment->save();
+    }
+
+    private function createCommentsForVoucher()
+    {
+        $voucher = Voucher::query()->first();
+
+        $comment = new Comment();
+
+        $comment->email = "aldo@gmail.com";
+        $comment->title = "title";
+        $comment->commentable_id = $voucher->id;
+        $comment->commentable_type = Voucher::class;
+        $comment->save();
+    }
+```
+6. Impelementasi One To Many Morph
+```php
+public function testOneToManyPolymorphic()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            VoucherSeeder::class,
+            CommentSeeder::class
+        ]);
+
+        $product = Product::query()->find("1");
+        self::assertNotNull($product);
+
+        $comments = $product->comments;
+        foreach ($comments as $comment) {
+            self::assertEquals(Product::class, $comment->commentable_type);
+            self::assertEquals($product->id, $comment->commentable_id);
+            Log::info($comment);
+        }
+    }
+```
+## One of Many Polymorphic
+Seperti Has One of Many, Polymorphic juga mendukung penambahan kondisi jikalau ingin mengambil salah satu data. Semisal dari data Comment, kita ingin mengambil data komen terakhir.
+
+Pada model Product:
+```php
+\App\Models\Product 
+... 
+public function latestComment(): MorphOne
+    {
+        return $this->morphOne(Comment::class, 'commentable')
+            ->latest("created_at");
+    }
+
+public function oldestComment(): MorphOne
+    {
+        return $this->morphOne(Comment::class, 'commentable')
+            ->oldest("created_at");
+    }
+```
+Kemudian untuk penggunaanya:
+```php
+ public function testOneOfManyPolymorphic()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            VoucherSeeder::class,
+            CommentSeeder::class
+        ]);
+
+        $product = Product::query()->find("1");
+        self::assertNotNull($product);
+
+        $comment = $product->latestComment;
+        self::assertNotNull($comment);
+
+        $comment = $product->oldestComment;
+        self::assertNotNull($comment);
+    }
+```
+## Many to Many Polymorphic
+Many to Many juga bisa dilakukan. Semisal ada model Tag, dimana Tag ini bisa digunakan di banyak voucher dan product. Atau sebaliknya satu voucher atau product bisa menggunakan banyak tag.
+
+1. Buat model Tag
+2. Define schema Tag
+```php
+public function up(): void
+    {
+        Schema::create('tags', function (Blueprint $table) {
+            $table->string('id', 100)->nullable(false)->primary();
+            $table->string('name', 100)->nullable(false);
+        });
+
+        Schema::create('taggables', function (Blueprint $table) {
+           $table->string('tag_id', 100)->nullable(false);
+           $table->string("taggable_id", 100)->nullable(false);
+           $table->string("taggable_type", 100)->nullable(false);
+           $table->primary(['tag_id', 'taggable_id', 'taggable_type']);
+        });
+    }
+```
+
+Jadi pertama kita buat table tags kemudian taggables. Taggables disini bertujuan sebagai jembatan dikarenakan many to many.
+3. Jalankan migrasi
+4. Edit Tag Model
+```php
+\App\Models\Tag
+class Tag extends Model
+{
+    protected $table = 'tags';
+    protected $primaryKey = "id";
+    protected $keyType = 'string';
+    public $incrementing = false;
+    public $timestamps = false;
+
+    // many to many polymorph
+    public function products(): MorphToMany
+    {
+        return $this->morphedByMany(Product::class, "taggable");
+    }
+
+    public function vouchers(): MorphToMany
+    {
+        return $this->morphedByMany(Voucher::class, "taggable");
+    }
+}
+```
+5. Tambahakn MorphToMany pada product dan voucher
+```php
+\App\Models\Product
+... 
+public function tags(): BelongsToMany
+    {
+        return $this->morphToMany(Tag::class, 'taggable');
+    }
+```
+6. Buat tag seeder
+```php
+\Database\Seeders\TagSeeder
+ public function run(): void
+    {
+        $tag = new Tag();
+        $tag->id = "ig";
+        $tag->name = "ig";
+        $tag->save();
+
+        $product = Product::query()->find("1");
+        $product->tags()->save($tag);
+
+        $voucher = Voucher::query()->first();
+        $voucher->tags()->save($tag);
+    }
+```
+5. Kemudian untuk penggunaanya
+```php
+ public function testManyToManyPolymorhpic()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            VoucherSeeder::class,
+            TagSeeder::class
+        ]);
+
+        $product = Product::query()->find("1");
+        $tags = $product->tags;
+        self::assertNotNull($tags);
+        self::assertCount(1, $tags);
+
+        foreach ($tags as $tag) {
+            self::assertNotNull($tag->id);
+            self::assertNotNull($tag->name);
+
+            $vouchers = $tag->vouchers;
+            self::assertNotNull($vouchers);
+            self::assertCount(1, $vouchers);
+        }
+    }
+```

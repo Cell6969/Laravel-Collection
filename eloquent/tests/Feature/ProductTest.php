@@ -6,9 +6,12 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Product;
 use Database\Seeders\CategorySeeder;
+use Database\Seeders\CommentSeeder;
 use Database\Seeders\CustomerSeeder;
 use Database\Seeders\ImageSeeder;
 use Database\Seeders\ProductSeeder;
+use Database\Seeders\TagSeeder;
+use Database\Seeders\VoucherSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Log;
@@ -56,7 +59,7 @@ class ProductTest extends TestCase
 
     public function testOneToOnePolymorphic()
     {
-        $this->seed([CategorySeeder::class, ProductSeeder::class,ImageSeeder::class]);
+        $this->seed([CategorySeeder::class, ProductSeeder::class, ImageSeeder::class]);
 
         $product = Product::query()->find("1");
         self::assertNotNull($product);
@@ -64,5 +67,68 @@ class ProductTest extends TestCase
         $image = $product->image;
         self::assertNotNull($image);
         self::assertEquals("https://image.com/2.jpg", $image->url);
+    }
+
+    public function testOneToManyPolymorphic()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            VoucherSeeder::class,
+            CommentSeeder::class
+        ]);
+
+        $product = Product::query()->find("1");
+        self::assertNotNull($product);
+
+        $comments = $product->comments;
+        foreach ($comments as $comment) {
+            self::assertEquals(Product::class, $comment->commentable_type);
+            self::assertEquals($product->id, $comment->commentable_id);
+            Log::info($comment);
+        }
+    }
+
+    public function testOneOfManyPolymorphic()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            VoucherSeeder::class,
+            CommentSeeder::class
+        ]);
+
+        $product = Product::query()->find("1");
+        self::assertNotNull($product);
+
+        $comment = $product->latestComment;
+        self::assertNotNull($comment);
+
+        $comment = $product->oldestComment;
+        self::assertNotNull($comment);
+    }
+
+    public function testManyToManyPolymorhpic()
+    {
+        $this->seed([
+            CategorySeeder::class,
+            ProductSeeder::class,
+            VoucherSeeder::class,
+            TagSeeder::class
+        ]);
+
+        $product = Product::query()->find("1");
+        $tags = $product->tags;
+        self::assertNotNull($tags);
+        self::assertCount(1, $tags);
+
+        foreach ($tags as $tag) {
+            self::assertNotNull($tag->id);
+            self::assertNotNull($tag->name);
+
+            $vouchers = $tag->vouchers;
+            self::assertNotNull($vouchers);
+            self::assertCount(1, $vouchers);
+        }
     }
 }
