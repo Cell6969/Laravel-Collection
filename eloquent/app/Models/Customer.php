@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Date;
 
 
 /**
- * 
+ *
  *
  * @property string $id
  * @property string $name
@@ -49,6 +49,10 @@ class Customer extends Model
     public $incrementing = false;
 
     public $timestamps = false;
+
+    protected $with = [
+        'wallet'
+    ];
 
     // Add relationship
     public function wallet(): HasOne

@@ -49,6 +49,10 @@ class Product extends Model
         "id", "name", "description"
     ];
 
+    protected $hidden = [
+      'category_id'
+    ];
+
     public $incrementing = false;
 
     public $timestamps = false;

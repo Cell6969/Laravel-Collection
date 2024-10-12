@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\App;
 
 
 /**
- * 
+ *
  *
  * @property string $id
  * @property string $name
@@ -42,6 +42,10 @@ class Category extends Model
     protected $keyType = "string";
     public $incrementing = false;
     public $timestamps = false;
+
+    protected $casts = [
+        'created_at' => 'datetime:U',
+    ];
 
     protected $fillable = [
         "id",
