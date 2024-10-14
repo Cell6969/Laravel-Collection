@@ -381,5 +381,214 @@ Laravel juga menyediakan beberapa class rule yang bisa digunakan untuk validator
 
 Contoh penggunaan:
 ```php
+ public function testValidatorRuleClasses()
+    {
+        $data = [
+            'username' => 'test@gmail.com',
+            'password' => 'test@gmail.com',
+        ];
 
+        $rules = [
+            'username' => ['required', new In(['aldo', 'dono', 'joko'])],
+            'password' => ['required', Password::min(6)->letters()->numbers()->symbols()],
+        ];
+
+        $validator = Validator::make($data, $rules);
+        self::assertNotNull($validator);
+
+        self::assertFalse($validator->passes());
+        self::assertTrue($validator->fails());
+
+        $message = $validator->getMessageBag();
+        Log::info($message->toJson(JSON_PRETTY_PRINT));
+    }
 ```
+## Nested Array Validation 
+Validasi laravel juga mendukung untuk nested array atau object.
+
+Contoh implementasi:
+```php
+public function testNestedArray()
+    {
+        $data = [
+            "name" => [
+                "firstName" => "John",
+                "lastName" => "Doe",
+            ],
+            "address" => [
+                "street" => "bekasi",
+                "province" => "jawa barat",
+                "country" => "indonesia",
+            ]
+        ];
+
+        $rules = [
+            "name.firstName" => ["required", "max:100"],
+            "name.lastName" => ["required", "max:100"],
+            "address.street" => ["required", "max:100"],
+            "address.province" => ["required", "max:100"],
+            "address.country" => ["required", "max:100"],
+
+        ];
+
+        $validator = Validator::make($data, $rules);
+        self::assertNotNull($validator);
+
+        self::assertTrue($validator->passes());
+        self::assertFalse($validator->fails());
+
+        $message = $validator->getMessageBag();
+        Log::info($message->toJson(JSON_PRETTY_PRINT));
+    }
+```
+
+### Indexed Array
+Jikalau nested array berisikan beberapa data yang bersifat index, maka tidak menggunakan . melainkan *
+
+Contoh implementasi:
+```php
+public function testNestedIndexArray()
+    {
+        $data = [
+            "name" => [
+                "firstName" => "John",
+                "lastName" => "Doe",
+            ],
+            "address" => [
+                [
+                    "street" => "bekasi",
+                    "province" => "jawa barat",
+                    "country" => "indonesia",
+                ],
+                [
+                    "street" => "bekasi",
+                    "province" => "jawa barat",
+                    "country" => "indonesia",
+                ],
+                [
+                    "street" => "bekasi",
+                    "province" => "jawa barat",
+                    "country" => "indonesia",
+                ],
+            ]
+        ];
+
+        $rules = [
+            "name.firstName" => ["required", "max:100"],
+            "name.lastName" => ["required", "max:100"],
+            "address.*.street" => ["required", "max:100"],
+            "address.*.province" => ["required", "max:100"],
+            "address.*.country" => ["required", "max:100"],
+
+        ];
+
+        $validator = Validator::make($data, $rules);
+        self::assertNotNull($validator);
+
+        self::assertTrue($validator->passes());
+        self::assertFalse($validator->fails());
+
+        $message = $validator->getMessageBag();
+        Log::info($message->toJson(JSON_PRETTY_PRINT));
+    }
+```
+## HTTP Request Validation
+Pada class Request memiliki method yaitu validate. Artinya kita bisa menambahkan rules untuk validasi pada http request class.
+
+Sebagai contoh, akan buat Controller yaitu FormController
+
+Kemudian pada FormController :
+```php
+\App\Http\Controllers\FormController:: 
+public function login(Request $request): Response
+    {
+        try {
+            $rules = [
+                "username" => "required",
+                "password" => "required"
+            ];
+            $data = $request->validate($rules);
+            return response("OK", Response::HTTP_OK);
+        } catch (ValidationException $validationException) {
+            return response($validationException->errors(), Response::HTTP_BAD_REQUEST);
+        }
+    }
+```
+
+Pada unit testnya:
+```php
+public function testLoginSuccess()
+    {
+        $response = $this->post('/form/login',[
+            'username' => 'aldo',
+            'password' => 'aldo'
+        ]);
+
+        $response->assertStatus(200);
+    }
+
+    public function testLoginFail()
+    {
+        $response = $this->post('/form/login',[
+            'username' => '',
+            'password' => ''
+        ]);
+
+        $response->assertStatus(400);
+    }
+```
+
+## Error Page
+Ada kondisi dimana error message tersebut ingin ditampilkan pada halaman web. Hal ini bisa dilakukan dengan menambahkan variable $error pada blade.
+Mengapa hal tersebut bisa terjadi dikarenakan di laravel ada class ShareErrorsFromSession, yakni dimana ketika variable $error tidak null pada view maka akan dishare ke view lainnya.
+
+Sebagai contoh buat view untuk form:
+```php
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login Form</title>
+</head>
+<body>
+@if($errors->any())
+    <ul>
+        @foreach($errors->all() as $error)
+            <li>{{$error}}</li>
+        @endforeach
+    </ul>
+@endif
+
+<form action="/form" method="post">
+    @csrf
+    <label>Username: <input type="text" name="username"/></label> <br>
+    <label>Password: <input type="password" name="password"/></label> <br>
+    <input type="submit" value="Login">
+</form>
+</body>
+</html>
+```
+
+Kemudian untuk controller menampilkan form dan submit form:
+```php
+public function form(): Response
+    {
+        return response()->view('form');
+    }
+
+public function submitForm(Request $request): Response
+    {
+        $data = $request->validate([
+            "username" => "required",
+            "password" => "required"
+        ]);
+
+        return response("OK", Response::HTTP_OK);
+    }
+```
+Disini tidak perlu try catch dikarenakan ketika terjadi error, laravel langsung menangkap dan akan me-redirect ke halaman sebelumnya dengan membawa error tersebut.
+
+Hasil testnya ketika error:
+![img.png](img.png)
+Jadi dengan demikian error akan dilempar ke view sebelumnya.

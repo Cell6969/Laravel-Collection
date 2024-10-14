@@ -9,6 +9,8 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -232,6 +234,106 @@ class ValidatorTest extends TestCase
 
         self::assertFalse($validator->passes());
         self::assertTrue($validator->fails());
+
+        $message = $validator->getMessageBag();
+        Log::info($message->toJson(JSON_PRETTY_PRINT));
+    }
+
+    public function testValidatorRuleClasses()
+    {
+        $data = [
+            'username' => 'test@gmail.com',
+            'password' => 'test@gmail.com',
+        ];
+
+        $rules = [
+            'username' => ['required', new In(['aldo', 'dono', 'joko'])],
+            'password' => ['required', Password::min(6)->letters()->numbers()->symbols()],
+        ];
+
+        $validator = Validator::make($data, $rules);
+        self::assertNotNull($validator);
+
+        self::assertFalse($validator->passes());
+        self::assertTrue($validator->fails());
+
+        $message = $validator->getMessageBag();
+        Log::info($message->toJson(JSON_PRETTY_PRINT));
+    }
+
+    public function testNestedArray()
+    {
+        $data = [
+            "name" => [
+                "firstName" => "John",
+                "lastName" => "Doe",
+            ],
+            "address" => [
+                "street" => "bekasi",
+                "province" => "jawa barat",
+                "country" => "indonesia",
+            ]
+        ];
+
+        $rules = [
+            "name.firstName" => ["required", "max:100"],
+            "name.lastName" => ["required", "max:100"],
+            "address.street" => ["required", "max:100"],
+            "address.province" => ["required", "max:100"],
+            "address.country" => ["required", "max:100"],
+
+        ];
+
+        $validator = Validator::make($data, $rules);
+        self::assertNotNull($validator);
+
+        self::assertTrue($validator->passes());
+        self::assertFalse($validator->fails());
+
+        $message = $validator->getMessageBag();
+        Log::info($message->toJson(JSON_PRETTY_PRINT));
+    }
+
+    public function testNestedIndexArray()
+    {
+        $data = [
+            "name" => [
+                "firstName" => "John",
+                "lastName" => "Doe",
+            ],
+            "address" => [
+                [
+                    "street" => "bekasi",
+                    "province" => "jawa barat",
+                    "country" => "indonesia",
+                ],
+                [
+                    "street" => "bekasi",
+                    "province" => "jawa barat",
+                    "country" => "indonesia",
+                ],
+                [
+                    "street" => "bekasi",
+                    "province" => "jawa barat",
+                    "country" => "indonesia",
+                ],
+            ]
+        ];
+
+        $rules = [
+            "name.firstName" => ["required", "max:100"],
+            "name.lastName" => ["required", "max:100"],
+            "address.*.street" => ["required", "max:100"],
+            "address.*.province" => ["required", "max:100"],
+            "address.*.country" => ["required", "max:100"],
+
+        ];
+
+        $validator = Validator::make($data, $rules);
+        self::assertNotNull($validator);
+
+        self::assertTrue($validator->passes());
+        self::assertFalse($validator->fails());
 
         $message = $validator->getMessageBag();
         Log::info($message->toJson(JSON_PRETTY_PRINT));
