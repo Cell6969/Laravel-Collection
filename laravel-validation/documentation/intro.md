@@ -592,3 +592,112 @@ Disini tidak perlu try catch dikarenakan ketika terjadi error, laravel langsung 
 Hasil testnya ketika error:
 ![img.png](img.png)
 Jadi dengan demikian error akan dilempar ke view sebelumnya.
+
+## Error Directive
+Sebelumnya kita mengambil error menggunakan $errors, namun bisa juga langsung menggunakan directive @error. Dari directive kita mengambil error by keynya
+```php
+... 
+<form action="/form" method="post">
+    @csrf
+    <label>Username: @error('username') {{$message}}  @enderror<input type="text" name="username"/></label> <br>
+    <label>Password: @error('password') {{$message}}  @enderror<input type="password" name="password"/></label> <br>
+    <input type="submit" value="Login">
+</form>
+```
+
+Maka outputnya:
+![img_1.png](img_1.png)
+
+## Repopulating Forms
+Pada submit form dan terjadi error, biasanya data sebelumnya akan hilang. Namun kita bisa mengambil data tersebut. Hal ini dikarenakan krn data sebelumya msh tersimpan sementara di laravel session.
+
+```php
+... 
+<form action="/form" method="post">
+    @csrf
+    <label>Username: @error('username') {{$message}}  @enderror
+        <input type="text" name="username" value="{{old('username')}}"/>
+    </label><br>
+    <label>Password: @error('password') {{$message}}  @enderror
+        <input type="password" name="password" value="{{old('password')}}"/>
+    </label><br>
+    <input type="submit" value="Login">
+</form>
+```
+![img_2.png](img_2.png)
+Namun perlu diingat biasanya data data yang bersifat credentials seperti password, itu dihilangkan
+
+## Custom Request
+Jikalau Form Request nya cukup kompleks, better kita buat Class tersendiri untuk Form Request Tersebut. dan validasi nya bisa diintegrasikan dengan Validator
+
+Untuk membuat Form Request sendiri:
+```shell
+php artisan make:request <NamaFormRequest>
+```
+
+Makan akan dibuat class Request sesuai nama request yang dibuat. Pada Class Request tersebut terdapat banyak method seperti:
+1. rule () => untuk memberikan rule validasi
+2. authorize() => berfungsi untuk menerapkan authorize pada request tersebut (default true jika dihapus)
+3. $stopOnFirstFailure => berfungsi untuk memberhentikan validasi jika salah satunya error
+4. $redirect / $redirectRoute => untuk redirect
+5. after() => untuk validasi lanjutan
+6. messages() => mengubah message
+7. attributes() => mengubah default nama attribute
+
+Sebagai contoh:
+```php
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
+
+class LoginRequest extends FormRequest
+{
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'username' => ['required', 'email', 'max:100'],
+            'password' => ['required', Password::min(6)->letters()->numbers()->symbols()],
+        ];
+    }
+}
+```
+Kemudian untuk pengggunaanya:
+```php
+public function submitForm(LoginRequest $request): Response
+    {
+        $data = $request->validated();
+        return response("OK", Response::HTTP_OK);
+    }
+```
+
+### Before and After Validation
+Jika ingin melakukan sesuatu sebelum validasi atau sesudah kita bisa gunakan method:
+
+prepareForValidation()
+
+passedValidation()
+
+```php
+... 
+protected function prepareForValidation(): void
+    {
+        $this->merge([
+            "username" => strtolower($this->input('username')),
+        ]);
+    }
+
+protected function passedValidation()
+    {
+        $this->merge([
+            "password" => bcrypt($this->input('password')),
+        ]);
+    }
+```
