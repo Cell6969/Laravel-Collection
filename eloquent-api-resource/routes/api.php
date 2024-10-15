@@ -17,3 +17,18 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('/categories/{id}', function ($id) {
+    $category = \App\Models\Category::query()->findOrFail($id);
+    return new \App\Http\Resources\CategoryResource($category);
+});
+
+Route::get('/categories', function () {
+    $categories = \App\Models\Category::all();
+    return \App\Http\Resources\CategoryResource::collection($categories);
+});
+
+Route::get('/categories-custom', function () {
+   $categories = \App\Models\Category::all();
+   return new \App\Http\Resources\CategoryCollection($categories);
+});
