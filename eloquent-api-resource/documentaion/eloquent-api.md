@@ -190,3 +190,232 @@ Route::get('/categories-custom', function () {
 ```
 output yang dihasilkan:
 ![img.png](img.png)
+
+## Nested Resource
+Pada saat menggunakan Resource Collection bisa juga menggunakan Resource lainnya. by default method toArray() akan mengkonversikan dari array collection menjadi JSON. Sebagai case, jikalau data yang direturn tidak terlalu banyak maka kita bisa memasukkan resource ke collection
+
+buat resource:
+```shell
+php artisan make:resource CategorySimpleResource
+```
+
+Pada CategorySimpleResource
+```php
+\App\Http\Resources\CategorySimpleResource:: 
+class CategorySimpleResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            "name" => $this->name,
+        ];
+    }
+}
+```
+Kemudian pada CategoryCollection:
+```php
+\App\Http\Resources\CategoryCollection:: 
+... 
+public function toArray(Request $request): array
+    {
+        return [
+            "data" => CategorySimpleResource::collection($this->collection),
+            "total" => count($this->collection),
+        ];
+    }
+```
+dengan demikian data yang akan muncul hanya id dan name. Sedangkan created_at dan updated_at tidak akan muncul. Mirip konsep dengan DTO
+
+## Data Wrap
+sebelumnya semua collection akan di wrap ke dalam key data. Kita bisa ubah dengan mengoverride attribut $wrap. Sebagai contoh:
+```php
+class ProductResource extends JsonResource
+{
+    public static $wrap = 'value';
+
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            "id" => $this->id,
+            "name" => $this->name,
+            "category" => new CategorySimpleResource($this->category),
+            "price" => $this->price,
+            "created_at" => $this->created_at,
+            "updated_at" => $this->updated_at,
+        ];
+    }
+}
+```
+Jadi nanti response data akan diwrap dalam attribute value bukan data. Kemudian buat seed untuk Product:
+```php
+public function run(): void
+    {
+        Category::all()->each(function (Category $category) {
+            for ($i = 0; $i < 5; $i++) {
+                $category->product()->create([
+                    "name" => "Product $i of $category->name",
+                    "price" => rand(1, 100),
+                ]);
+            }
+        });
+    }
+```
+jadi tiap category memiliki 5 product. Kemudian untuk route nya:
+```php
+Route::get('/products/{id}', function ($id) {
+    $product = \App\Models\Product::query()->findOrFail($id);
+    return new \App\Http\Resources\ProductResource($product);
+});
+```
+Output yang dihasilkan:
+![img_1.png](img_1.png)
+
+## Data Wrap Collection
+
+## Pagination
+Jika mengirim data Pagination ke dalam Resource Collection, secara otomatis Laravel akan menambahkan informasi link dan juga meta (Paging) secara otomatis.
+
+Contoh implementasi:
+```php
+Route::get('/products-paging', function (Request $request) {
+    $page = $request->get('page', 1);
+    $products = \App\Models\Product::query()->paginate(10, ['*'], 'page', $page);
+    return new \App\Http\Resources\ProductCollection($products);
+});
+```
+output:
+![img_2.png](img_2.png)
+![img_3.png](img_3.png)
+
+Jadi nanti dia otomatis akan membuat meta untuk paginasi seperti link, meta, kemudian next-page dst. Tidak perlu membuat design untuk meta pagingnya.
+
+## Additional Meta Data
+Kadang ada kondisi dimana akan menambahkan attribute selain "data". Hal itu bisa dilakukan dengan meng-override properties $additional.
+
+```php
+class ProductDebugResource extends JsonResource
+{
+    public $additional = [
+        "author" => "aldo"
+    ];
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            "id" => $this->id,
+            "name" => $this->name,
+            "price" => $this->price,
+        ];
+    }
+}
+```
+Pada routesnya:
+```php
+Route::get('/products-debug/{id}', function ($id) {
+    $product = \App\Models\Product::query()->findOrFail($id);
+    return new \App\Http\Resources\ProductDebugResource($product);
+});
+```
+
+Maka outputnya:
+![img_4.png](img_4.png)
+
+Jadi nanti attribute $author akan ada dan sejajar dengan $data.
+
+### Additional Parameter Dinamis
+Jika butuh tambahan additional parameter yang dinamis maka langsung bisa dibuat di dalam toArray sehingga tidak terbungkus lagi oleh $wrap.
+
+```php
+\App\Http\Resources\ProductDebugResource:: 
+class ProductDebugResource extends JsonResource
+{
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            "data" => [
+                "id" => $this->id,
+                "name" => $this->name,
+                "price" => $this->price
+            ],
+            "author" => "aldo",
+            "server_time" => now()->toDateString()
+        ];
+    }
+}
+```
+Maka formatnya nanti:
+
+```json
+{
+    "data": ... ,
+    "author": ... ,
+    "server_time": ...
+}
+```
+
+## Conditional Attribute
+Pada beberapa kasus ketika mengakese query relation pada model di Resource, secara otomatis Laravel akan melakukan query ke database. Jikalau relasinya banyak maka ini tidak bagus dikarenakan proses konversi ke JSON akan cukup lambat. Kita bisa melakukan pengecekan conditional attribute yang betujuan sebagai booelan atau relasi.
+![img_5.png](img_5.png)
+
+```php
+\App\Http\Resources\ProductResource::
+...
+public function toArray(Request $request): array
+    {
+        return [
+            "id" => $this->id,
+            "name" => $this->name,
+            "category" => new CategorySimpleResource($this->whenLoaded('category')),
+            "price" => $this->price,
+            "is_expensive" =>$this->when($this->price > 1000, true, false),
+            "created_at" => $this->created_at,
+            "updated_at" => $this->updated_at,
+        ];
+    }
+```
+Jika di test maka hasil data product akan muncul namun field category tidak ada. Hal ini dikarenakan kita memakai condition whenLoaded. Jikalau dari awal tidak diload ya tidak akan muncul. Begitu juga untuk attribute is_expensive.
+
+
+## Resource Response
+di method toArray() terdapat parameter Request yang dimana kita bisa mengambil parameter yang ada di request. Sedangkan Resource memiliki method withResponse() yang bisa di override untuk mengubah http Response.
+```php
+\App\Http\Resources\ProductCollection:: 
+... 
+public function withResponse(Request $request, JsonResponse $response)
+    {
+        $response->header("X-POWERED-By", "aldo");
+    }
+```
+
+Maka outputnya:
+![img_6.png](img_6.png)
+
+Bisa juga menambahkannya pada Route:
+```php
+Route::get('/products/{id}', function ($id) {
+    $product = \App\Models\Product::query()->findOrFail($id);
+    return (new \App\Http\Resources\ProductResource($product))
+        ->response()
+        ->header("X-POWERED-BY", "aldo");
+});
+```

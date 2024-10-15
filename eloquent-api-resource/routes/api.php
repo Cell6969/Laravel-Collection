@@ -29,6 +29,26 @@ Route::get('/categories', function () {
 });
 
 Route::get('/categories-custom', function () {
-   $categories = \App\Models\Category::all();
-   return new \App\Http\Resources\CategoryCollection($categories);
+    $categories = \App\Models\Category::all();
+    return new \App\Http\Resources\CategoryCollection($categories);
+});
+
+
+Route::get('/products/{id}', function ($id) {
+    $product = \App\Models\Product::query()->findOrFail($id);
+    return (new \App\Http\Resources\ProductResource($product))
+        ->response()
+        ->header("X-POWERED-BY", "aldo");
+});
+
+
+Route::get('/products-paging', function (Request $request) {
+    $page = $request->get('page', 1);
+    $products = \App\Models\Product::query()->paginate(2, ['*'], 'page', $page);
+    return new \App\Http\Resources\ProductCollection($products);
+});
+
+Route::get('/products-debug/{id}', function ($id) {
+    $product = \App\Models\Product::query()->findOrFail($id);
+    return new \App\Http\Resources\ProductDebugResource($product);
 });
