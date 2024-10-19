@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * 
+ *
  *
  * @property int $id
  * @property string|null $street
@@ -40,6 +40,10 @@ class Address extends Model
     protected $keyType = 'int';
     public $incrementing = true;
     public $timestamps = true;
+
+    protected $fillable = [
+      "street", "city", "province", "country", "postal_code"
+    ];
 
     public function contact(): BelongsTo
     {

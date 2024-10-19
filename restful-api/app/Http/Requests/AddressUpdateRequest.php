@@ -2,18 +2,24 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Address;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Auth;
 
-class UserUpdateRequest extends FormRequest
+/**
+ * @mixin Address
+ */
+
+class AddressUpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user() != null;
+        return $this->user() !== null;
     }
 
     /**
@@ -24,8 +30,11 @@ class UserUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['nullable', 'string', 'max:100'],
-            'password' => ['nullable', 'string', 'max:100'],
+            "street" => ["nullable", "string", "max:200"],
+            "city" => ["nullable", "string", "max:100"],
+            "province" => ["nullable", "string", "max:100"],
+            "country" => ["required", "string", "max:100"],
+            "postal_code" => ["nullable", "string", "max:10"],
         ];
     }
 
@@ -35,6 +44,4 @@ class UserUpdateRequest extends FormRequest
             "errors" => $validator->getMessageBag()
         ], 400));
     }
-
-
 }
