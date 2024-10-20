@@ -406,3 +406,261 @@ public function testCustomUserProvider()
 Jadi dengan demikian kita bisa memasang guard by custom dan juga provider dengan custom.
 
 
+## Authorization
+Authorisasi pada laravel memiliki 2 cara yaitu Gates dan Policies. Gates itu seperti Routes, simple dan berbasis closure, sedangkan Policies itu menanamkan logic pada controller.
+
+## Gates
+Gates adalah closure sederhana untuk menentukan apakah user punya akses untuk aksi tertentu. Definisi Gates biasanya disimpan dalam boot() AuthServiceProvider menggunakan Gate Facade.
+
+Sebagai contoh, kita akan buat Contact, dimana Contact tersebut dimiliki oleh User. Pada api contact tersebut akan ditanam Gate 
+
+1. Buat Model Contact
+2. Define Schema Contact
+```php
+public function up(): void
+    {
+        Schema::create('contacts', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100)->nullable(false);
+            $table->string('email', 100)->nullable();
+            $table->string('phone', 20)->nullable();
+            $table->string('address', 200)->nullable();
+            $table->unsignedBigInteger('user_id')->nullable(false);
+            $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users');
+        });
+    }
+```
+3. Jalankan Migrasi
+4. Tambahkan relation pada Contact dan User
+5. Buat Gate pada AuthServiceProvider
+```php
+\App\Providers\AuthServiceProvider:: 
+... 
+Gate::define("get-contact", function (User $user, Contact $contact) {
+           return $user->id == $contact->user_id;
+        });
+
+Gate::define("update-contact", function (User $user, Contact $contact) {
+           return $user->id == $contact->user_id;
+        });
+
+Gate::define("delete-contact", function (User $user, Contact $contact) {
+           return $user->id == $contact->user_id;
+        });
+```
+6. Tambahkan Seeder untuk Contact
+```php
+public function run(): void
+    {
+        $user = User::query()->where("email", "aldo@gmail.com")->first();
+
+        $contact = new Contact();
+        $contact->name = "Aldo Contact";
+        $contact->email = "aldo@gmail.com";
+        $contact->user_id = $user->id;
+        $contact->save();
+    }
+```
+7. Test Gate
+```php
+public function testGate()
+    {
+        $this->seed([UserSeeder::class, ContactSeeder::class]);
+
+        $user = User::query()->where("email", "=", "aldo@gmail.com")->firstOrFail();
+        Auth::login($user);
+
+        $contact = Contact::query()->where("user_id", "=", $user->id)->firstOrFail();
+
+        self::assertTrue(Gate::allows("get-contact", $contact));
+        self::assertTrue(Gate::allows("update-contact", $contact));
+        self::assertTrue(Gate::allows("delete-contact", $contact));
+    }
+```
+
+## Gate Facade
+selain menggunakan method allows, ada beberapa method lain pada facade gate:
+![img_4.png](img_4.png)
+
+## Gate Response
+Response gate juga bisa di custom, sebagai contoh:
+
+buat Gate untuk create-contact
+```php
+\App\Providers\AuthServiceProvider:: 
+
+... 
+Gate::define("create-contact", function (User $user) {
+           if ($user->name == "admin") {
+               return Response::allow();
+           } else {
+               return Response::deny("You are not admin");
+           }
+        });
+```
+
+Kemudian pada test:
+```php
+public function testGateResponse()
+    {
+        $this->seed([UserSeeder::class, ContactSeeder::class]);
+
+        $user = User::query()->where("email", "=", "aldo@gmail.com")->firstOrFail();
+        Auth::login($user);
+
+        $response = Gate::inspect('create-contact');
+        self::assertFalse($response->allowed());
+        self::assertEquals("You are not admin", $response->message());
+    }
+```
+
+## Policies
+Policies adalah class yang berisikan authorization logic terhadap model atau resource. Menggunaka Policy lebih rapih dibanding dengan Gate.
+
+Untuk membuat Policy
+```shell
+php artisan make:policy <NamaPolicy>
+```
+Atau untuk langsung ke model
+```shell
+php artisan make:policy <NamaPolicy> --model=NamaModel
+```
+Setelah membuat policy, registrasikan policy tersebut pada AuthServiceProvider.
+
+Untuk contoh nya, terlebih dahulu buat model Todo
+1. Buat Model Todo
+2. Define Schema Todo
+```php
+public function up(): void
+    {
+        Schema::create('todos', function (Blueprint $table) {
+            $table->id();
+            $table->string('title', 100)->nullable(false);
+            $table->string('description', 100)->nullable();
+            $table->unsignedBigInteger('user_id')->nullable(false);
+            $table->softDeletes();
+            $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users');
+        });
+    }
+```
+3. Jalankan migrasi
+4. Tambahkan relation pada user dan todo
+5. Buat policy untuk Todo
+```shell
+php artisan make:policy TodoPolicy --model=Todo
+```
+```php
+\App\Policies\TodoPolicy:: 
+<?php
+
+namespace App\Policies;
+
+use App\Models\Todo;
+use App\Models\User;
+use Illuminate\Auth\Access\Response;
+
+class TodoPolicy
+{
+    /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, Todo $todo): bool
+    {
+        return $user->id == $todo->user_id;
+    }
+
+    /**
+     * Determine whether the user can create models.
+     */
+    public function create(User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, Todo $todo): bool
+    {
+        return $user->id == $todo->user_id;
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, Todo $todo): bool
+    {
+        return $user->id == $todo->user_id;
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     */
+    public function restore(User $user, Todo $todo): bool
+    {
+        return $user->id == $todo->user_id;
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     */
+    public function forceDelete(User $user, Todo $todo): bool
+    {
+        return $user->id == $todo->user_id;
+    }
+}
+```
+6. Registrasikan TodoPolicy pada AuthServiceProvider:
+```php
+\App\Providers\AuthServiceProvider:: 
+... 
+protected $policies = [
+        Todo::class => TodoPolicy::class
+    ];
+```
+7. Update TodoSeeder:
+```php
+public function run(): void
+    {
+        $user = User::query()->where("email", '=', "aldo@gmail.com")->first();
+
+        $todo = new Todo();
+        $todo->title = "do aldo";
+        $todo->description = "desc";
+        $todo->user_id = $user->id;
+        $todo->save();
+    }
+```
+8. Kemudian pada testnya:
+```php
+public function testPolicy()
+    {
+        $this->seed([
+            UserSeeder::class,
+            TodoSeeder::class
+        ]);
+
+        $user = User::query()->where("email", '=', 'aldo@gmail.com')->first();
+
+        Auth::login($user);
+
+        $todo = Todo::query()->first();
+
+        self::assertTrue(Gate::allows("view", $todo));
+        self::assertTrue(Gate::allows("update", $todo));
+        self::assertTrue(Gate::allows("delete", $todo));
+        self::assertTrue(Gate::allows("create", Todo::class));
+    }
+```
+Jadi cukup rapih menggunakan Policy karena dia bisa direct ke model
