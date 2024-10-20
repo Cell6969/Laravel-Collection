@@ -156,3 +156,253 @@ public function testCurrent()
 Jadi simpelnya laravel menggunakan facade Auth yang dimana jika user berhasil login maka data tersebut akan disimpan dalam session.
 
 ## Hash Facade
+Hash Facade merupakan Facade yang bertujuan untuk melakukan hash. Biasanya ketika registrasi user, by default laravel akan melakukan hash pada password yang disimpan menggunakan algoritma bcrypt.
+Pengaturan hash pada pada file config/hashing.php
+
+Contoh penggunaan Hash:
+```php
+public function testHash()
+    {
+        $password = "secret";
+
+        $hash = Hash::make($password);
+
+        $result = Hash::check("secret", $hash);
+
+        self::assertTrue($result);
+    }
+```
+Jadi dengan facade Hash kita bisa melakukan hash pada data yang kita inginkan.
+
+## Auth Config
+Pada laravel, konfigurasi Auth ada berada pada file config/auth.php
+
+## Authenticate Middleware
+By default, laravel akan membuat suatu middleware bernama Authenticate. Middleware ini bisa digunakan untuk memastikan bahwa User sudah ter-autentikasi terlebih dahulu. Alias middleware ini adalah 'auth'. By default pada middleware tersebut jika user belum login maka akan diarahkan ke halaman login
+
+Untuk contohnya, kita tambahkan middleware pada /users/current:
+```php
+... 
+Route::get('/users/current', [\App\Http\Controllers\UserController::class, 'current'])
+    ->middleware(["auth"]);
+```
+Jadi ketika si user mengakses current tetapi belum login maka akan dilempar ke halaman login.
+
+
+## Guard
+Guard adalah bagaimana cara User di autentikasi untuk tiap request. By default pada config/auth.php, guard yang digunakan adalah session, artinya proses autentikasi akan dilakukan dengan cara mengecek session. Ada case dimana guard yang kita inginkan bukan melalui session melainkan API-Key Header.
+
+Untuk implementasinya, tambahkan kolom token pada users
+1. Buat migration untuk menambahkan kolom token pada users.
+2. Ubah user seeder:
+```php
+public function run(): void
+    {
+        User::query()->create([
+            "name" => "aldo",
+            "email" => "aldo@gmail.com",
+            "password" => Hash::make('aldo123'),
+            "token" => "secret" // add token 
+        ]);
+    }
+```
+3. Buat Guard pada Provider,  buat TokenGuard
+```php
+\App\Providers\Guard\TokenGuard::class 
+
+class TokenGuard implements Guard
+{
+    use GuardHelpers;
+
+    private Request $request;
+
+    public function __construct(UserProvider $provider,Request $request)
+    {
+        $this->provider = $provider;
+        $this->request = $request;
+    }
+
+    /**
+     * @param Request $request
+     */
+    public function setRequest(Request $request): void
+    {
+        $this->request = $request;
+    }
+
+    public function user()
+    {
+        if ($this->user !== null) {
+            return $this->user;
+        }
+
+        $token = $this->request->header("X-API-KEY");
+        if ($token) {
+            $this->user = $this->provider->retrieveByCredentials(["token" => $token]);
+        }
+
+        return $this->user;
+    }
+
+    public function validate(array $credentials = [])
+    {
+        return $this->provider->validateCredentials($this->user, $credentials);
+    }
+}
+```
+Jadi dari Class TokenGuard kita implement Guard. Kita tambahkan trait GuardHelpers untuk memenuhi kontrak interface.
+- setRequest() => berfungsi untuk me-set request yang datang tiap kali user mengakses
+- user() => berfungsi untuk melakukan authenticate pada userm dalam hal ini kita akan cek apakah user sudah authenticate, jika sudah kita cek apakah dia membawa token jika iya maka token tersebut akan dicek pada database
+- validate() => berfungsi untuk validasi password.
+4. Registrasi Guard pada pada AuthServiceProvider
+```php
+\App\Providers\AuthServiceProvider::class
+public function boot(): void
+    {
+        Auth::extend("token", function (Application $app, string $name, array $config) {
+            $tokenGuard = new TokenGuard(Auth::createUserProvider($config['provider']), $app->make(Request::class));
+            $app->refresh('request', $tokenGuard, 'setRequest');
+            return $tokenGuard;
+        });
+    }
+```
+Jadi kita panggil / inject facade Auth dan extend.Ketika extend kita buat nama driver yaitu token. Kemudian kita inject app, beserta closurenya.
+Kemudian kita buat initiate object TokenGuard dimana kita masukkan UserProvider dan Request. Kemudian kita set refresh artinya tiap user melakukan request, maka request sebelumnya akan diperbaharui, kemudian kita return tokenGuard nya.
+5. Buat driver token pada auth.php
+```php
+auth.php 
+... 
+'guards' => [
+        'token' => [
+            "driver" => "token",
+            "provider" => "users",
+        ],
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+    ],
+```
+Jadi setelah kita buat guard Token kemudian kita registrasikan pada AuthServiceProvider kemudian kita define guard token pada auth.php supaya bisa digunakan guard tersebut.
+
+Buat Guard -> registrasi pada AuthServiceProvider -> registrasi pada config/auth.php
+6. Implementasi Guard Token. By default guard yang akan digunakan adalah guard web yang menggunakan session. Jikalau kita ingin pada satu endpoint menggunakan spesifik guard, bisa diregistrasikan seperti berikut:
+```php
+...
+Route::get('/api/users/current', [\App\Http\Controllers\UserController::class, 'current'])
+    ->middleware(["auth:token"]);
+```
+7. Kemudian pada testnya:
+```php
+ public function testTokenGuard()
+    {
+        $this->seed([UserSeeder::class]);
+
+        $this->get("/api/users/current", [
+            "Accept" => "application/json",
+            "X-API-KEY" => "secret"
+        ])->assertSeeText("Hello aldo");
+    }
+```
+
+Jadi pengecekan atau guard nya bukan lagi dari session melainkan dari custom guard yang kita buat yaitu api key via header
+
+## User Provider
+By default, informasi User akan diambil menggunakan EloquentUserProvider. Laravel sendiri sudah membuat EloquentUserProvider , oleh karena itu pada materi ch sebelumnya kita bisa langsung menggunakan guard dari UserProvider yang sudah dibuat oleh laravel.
+Kita bisa buat Provider sendiri namun harus implementasi interface UserProvider
+
+1. Buat SimpleProvider class Pada Providers/User
+```php
+\App\Providers\User\SimpleProvider:: 
+class SimpleProvider implements UserProvider
+{
+
+    private GenericUser $user;
+
+    public function __construct()
+    {
+        $this->user = new GenericUser([
+            "id" => "aldo",
+            "name" => "Aldo",
+            "email" => "aldo@gmail.com",
+            "token" => "secret"
+        ]);
+    }
+
+    public function retrieveByCredentials(array $credentials)
+    {
+        if ($credentials["token"] == $this->user->token) {
+            return $this->user;
+        }
+
+        return null;
+    }
+    .... 
+}
+```
+2. Registrasikan Provider pada AuthServiceProvider
+```php
+\App\Providers\AuthServiceProvider::class 
+public function boot(): void
+    {
+        Auth::extend("token", function (Application $app, string $name, array $config) {
+            $tokenGuard = new TokenGuard(Auth::createUserProvider($config['provider']), $app->make(Request::class));
+            $app->refresh('request', $tokenGuard, 'setRequest');
+            return $tokenGuard;
+        });
+
+        Auth::provider("simple", function (Application $app, array $config) {
+            return new SimpleProvider();
+        });
+    }
+```
+3. define provider pada auth.php
+```php
+'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
+        'simple-providers' => [
+            'driver' => 'simple'
+        ]
+```
+4. Define guard baru menggunakan token namun dengan provider simple
+```php
+'guards' => [
+        'simple-token' => [
+            'driver' => 'token',
+            'provider' => 'simple-providers',
+        ],
+        'token' => [
+            "driver" => "token",
+            "provider" => "users",
+        ],
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+    ],
+```
+5. Buat route api
+```php
+Route::get('/simple-api/users/current', [\App\Http\Controllers\UserController::class, 'current'])
+    ->middleware(["auth:simple-token"]);
+```
+6. Test
+```php
+public function testCustomUserProvider()
+    {
+        $this->seed([UserSeeder::class]);
+
+        // test if user not authenticated
+        $this->get("simple-api/users/current", [
+
+            "Accept" => "application/json",
+            "X-API-KEY" => "secret"
+        ])->assertSeeText("Hello Aldo");
+    }
+```
+Jadi dengan demikian kita bisa memasang guard by custom dan juga provider dengan custom.
+
+
