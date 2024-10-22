@@ -6,6 +6,7 @@ namespace App\Providers;
  use App\Models\Todo;
  use App\Models\User;
  use App\Policies\TodoPolicy;
+ use App\Policies\UserPolicy;
  use Illuminate\Auth\Access\Response;
  use Illuminate\Support\Facades\Gate;
 use App\Providers\Guard\TokenGuard;
@@ -23,6 +24,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
+        User::class => UserPolicy::class,
         Todo::class => TodoPolicy::class
     ];
 

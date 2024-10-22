@@ -664,3 +664,231 @@ public function testPolicy()
     }
 ```
 Jadi cukup rapih menggunakan Policy karena dia bisa direct ke model
+
+## Trait Authorizable 
+Trait Authorizable digunakan sebagai shortcut untuk melakukan pengecekan authorization menggunakan method-method yang tersedia. By default, model User mengimplementasikan Authenticable secara otomatis akan memiliki trait Authorizable
+
+Contoh implementasi:
+```php
+public function testAuthorizable()
+    {
+        $this->seed([
+            UserSeeder::class,
+            TodoSeeder::class
+        ]);
+
+        $user = User::query()->where("email", '=', 'aldo@gmail.com')->first();
+
+        $todo = Todo::query()->first();
+
+        self::assertTrue($user->can("view", $todo));
+        self::assertTrue($user->can("update", $todo));
+        self::assertTrue($user->can("delete", $todo));
+        self::assertTrue($user->can("create", Todo::class));
+    }
+```
+
+## Authorize Request
+Selain menggunakan Gate dan Authorizable, untuk pengecekan Authorization bisa juga menggunakan trait AuthorizeRequests. By default ketika kita buat controller, controller akan menggunakan trait AuthorizesRequest.
+
+Contoh penggunaan pada controller:
+```php
+class TodoController extends Controller
+{
+    public function create(Request $request): JsonResponse
+    {
+        $this->authorize("create", Todo::class);
+
+        return response()->json([
+            "message" => "Success"
+        ], 201);
+    }
+}
+```
+
+jadi secara langsung akan mengecek authorisasi untuk create. Jika tidak memiliki authorisasi makan akan throw error. Kemudian registrasikan pada route:
+```php
+Route::post('/api/todo', [\App\Http\Controllers\TodoController::class, 'create']);
+```
+
+Kemudian pada unit testny:
+```php
+public function testTodo()
+    {
+        $this->seed([UserSeeder::class, TodoSeeder::class]);
+
+        // user not login: failed
+        $this->post("/api/todo")
+            ->assertStatus(403);
+
+        // user login: success
+        $user = User::query()->where("email", "=", "aldo@gmail.com")->first();
+        Auth::login($user);
+
+        $this->post("/api/todo")
+            ->assertStatus(201);
+    }
+```
+Jadi cukup sederhana ketiak implement policy pada controller.
+
+## Blade Template
+Selain pada Controller, authorization juga berlaku pada view Blade. Pada template blade kita bisa tambahkan directiv @can, @cannot, @canany.
+
+Contoh buat blade template untuk todo:
+```php
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Todos</title>
+</head>
+<body>
+<h1>Todos</h1>
+<table>
+    @foreach($todos as $todo)
+        <tr>
+            <td>{{$todo->title}}</td>
+            <td>
+                @can('update', $todo)
+                    Edit
+                @else
+                    No Edit
+                @endcan
+            </td>
+            <td>
+                @can('delete', $todo)
+                    Delete
+                @else
+                    No Delete
+                @endcan
+            </td>
+        </tr>
+    @endforeach
+</table>
+</body>
+</html>
+```
+Kemudian pada testnya:
+```php
+public function testView()
+    {
+        $this->seed([UserSeeder::class, TodoSeeder::class]);
+
+        $user = User::query()->where("email", "=", "aldo@gmail.com")->first();
+
+        Auth::login($user);
+
+        $todos = Todo::query()->get();
+
+        $this->view("todos", [
+            "todos" => $todos
+        ])->assertSeeText("Edit")
+            ->assertSeeText("Delete")
+            ->assertDontSeeText("No Edit")
+            ->assertDontSeeText("No Delete");
+    }
+```
+Jadi nanti ketika user sudah login di bisa melihat todos, bisa mengedit dan juga delete. Namun jika di belum login, dia hanya bisa melihat todo saja.
+
+## Guest Access
+By default ketika menggunakan Gate atau Policy, jika dideteksi tidak ada User secara otomatis akan mengembalikan nilai false. Ada case dimana beberapa aksi diperbolehkan untuk Guest.
+
+Sebagai contoh akan dibuat UserPolicy, dimana Guest diperbolehkan untuk Registrasi User Baru.
+
+1. Buat UserPolicy
+```php
+\App\Policies\UserPolicy:: 
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use Illuminate\Auth\Access\Response;
+
+class UserPolicy
+{
+    /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, User $model): bool
+    {
+        return $user->id === $model->id;
+    }
+
+    /**
+     * Determine whether the user can create models.
+     */
+    public function create(?User $user): bool // make opsional so guest can act
+    {
+        return $user == null;
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, User $model): bool
+    {
+        return $user->id === $model->id;
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, User $model): bool
+    {
+        return $user->id === $model->id;
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     */
+    public function restore(User $user, User $model): bool
+    {
+        return $user->id === $model->id;
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     */
+    public function forceDelete(User $user, User $model): bool
+    {
+        return $user->id === $model->id;
+    }
+}
+```
+Jadi dengan membuat parameter User menjadi opsional maka akan memperbolehkan Guest melakukan aksi tanpa harus login.
+2. Registrasikan Policy
+```php
+... 
+protected $policies = [
+        User::class => UserPolicy::class,
+        Todo::class => TodoPolicy::class
+    ];
+```
+3. Untuk testnya
+```php
+public function testGuestNotLogin()
+    {
+        self::assertTrue(Gate::allows('create', User::class));
+    }
+
+public function testGuestLogin()
+    {
+        $this->seed([UserSeeder::class]);
+
+        $user = User::query()->where("email", "=", "aldo@gmail.com")->first();
+        Auth::login($user);
+
+        self::assertFalse(Gate::allows('create', User::class));
+    }
+```
+Jadi dengan membuat parameter menjadi opsional maka action diperbolehkan bahkan ketika user belum login
+
