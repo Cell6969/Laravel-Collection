@@ -8,6 +8,7 @@ use Database\Seeders\TodoSeeder;
 use Database\Seeders\UserSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class PolicyTest extends TestCase
@@ -46,5 +47,27 @@ class PolicyTest extends TestCase
         self::assertTrue($user->can("update", $todo));
         self::assertTrue($user->can("delete", $todo));
         self::assertTrue($user->can("create", Todo::class));
+    }
+
+    public function testBefore()
+    {
+        $this->seed([UserSeeder::class, TodoSeeder::class]);
+
+        // ambil todos dari aldo
+        $todo = Todo::query()->first();
+
+        // buat user dengan nama superadmin
+        $user = new User([
+            "name" => "superadmin",
+            "email" => "superadmin@gmail.com",
+            "password" => Hash::make('password')
+        ]);
+
+        $user->save();
+
+        // test superadmin
+        self::assertTrue($user->can("view", $todo));
+        self::assertTrue($user->can("update", $todo));
+        self::assertTrue($user->can("delete", $todo));
     }
 }

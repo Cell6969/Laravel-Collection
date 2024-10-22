@@ -892,3 +892,68 @@ public function testGuestLogin()
 ```
 Jadi dengan membuat parameter menjadi opsional maka action diperbolehkan bahkan ketika user belum login
 
+## Before and After
+Gate and Policy memiliki fitur bernama Before dan After yang akan dieksekusi sebelum dan sesudah sebuah Gate/policy dieksekusi. Jika before mengembalikan hasil boolean maka eksekusi akan dihentikan. After dieksekusi paling akhir dan bisa digunakan untuk mengubah hasil dari authorization Gate/Policy sebelumnya.
+![img_5.png](img_5.png)
+
+Sebagai contoh pada TodoPolicy
+```php
+\App\Policies\TodoPolicy:: 
+... 
+public function before(User $user, string $ability)
+    {
+        if ($user->name == "superadmin") {
+            return true;
+        }
+    }
+```
+Pada code diatas, memiliki makna jika username yang mengakes adalah superadmin, maka policy policy yang lain tidak akan diperhatikan
+
+Untuk penggunaaan:
+```php
+ public function testBefore()
+    {
+        $this->seed([UserSeeder::class, TodoSeeder::class]);
+
+        // ambil todos dari aldo
+        $todo = Todo::query()->first();
+
+        // buat user dengan nama superadmin
+        $user = new User([
+            "name" => "superadmin",
+            "email" => "superadmin@gmail.com",
+            "password" => Hash::make('password')
+        ]);
+
+        $user->save();
+
+        // test superadmin
+        self::assertTrue($user->can("view", $todo));
+        self::assertTrue($user->can("update", $todo));
+        self::assertTrue($user->can("delete", $todo));
+    }
+```
+Jika diperhatikan kita ambil todo nya aldo, kemudian kita buat user baru dengan nama superadmin. Pada policy tdi kita bisa jika namanya adalah superadmin maka policy lain akan bernilai true. Berbeda jikalau bukan akun dengan nama superadmin.
+
+## Encryption
+Selain Hash, laravel juga memiliki fitur Encryption. Konfigurasi encryption ada di file config/app.php. Key yang digunakan menggunakan APP_KEY environment.\
+
+Untuk generate key harus menggunakan command yang tersedia:
+```shell
+php artisan key:generate
+```
+
+Untuk test penggunaan:
+```php
+public function testEncryption()
+    {
+        $value = "ini data rahasia";
+        $encrypted = Crypt::encryptString($value);
+        var_dump($encrypted);
+
+        $decrypted = Crypt::decryptString($encrypted);
+        var_dump($decrypted);
+
+        self::assertEquals($value, $decrypted);
+    }
+```
