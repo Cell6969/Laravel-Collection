@@ -1,0 +1,5 @@
+ping
+
+keys *
+
+get laravel_database_laravel_cache_:O8c251dhwnW1wQaeRDe9PJPDqbioZbHQBBstEAMw
